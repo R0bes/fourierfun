@@ -1,5 +1,5 @@
 import { CanvasHandler} from './draw-stuff.js';
-import { normalizePath } from './math-stuff.js';
+import { normalizePath, resample2dData, getFourierData, slurp } from './math-stuff.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -13,31 +13,100 @@ document.addEventListener('DOMContentLoaded', () => {
   drawingfield.addEventListener('mousemove', dodraw);
 
   let drawn_points = [];
+  let normalized_points = [];
+  let fourier_data = [];
+
   let draw = false;
+  let animate = false;
+
+  let animAmt = 1;
+
+  
+  setInterval(() => {
+    if(!animate) {
+      return;
+    }
+    animAmt += (100 / 10000) % 1;
+    console.log(animAmt)
+    while (animAmt > 1) {
+        animAmt --;
+    }
+    animateFourier(canvasHandler3);
+  }, 100);
+
 
   function startdraw(e) {
     drawn_points = [];
     canvasHandler1.clear();
     canvasHandler2.clear();
+    canvasHandler3.clear();
     draw = true;
+    animate = false;
   }
 
   function dodraw(e) {
     if (!draw) return;
     drawn_points.push({x: e.clientX, y: e.clientY});
-    canvasHandler1.drawPath(drawn_points);
+    canvasHandler1.drawPath(drawn_points, 3);
     canvasHandler1.drawPoints(drawn_points);
   }
 
   function endedraw() {
     draw = false;
 
+    // closed loop
+    //drawn_points.push(drawn_points[0]);
+
     // Normalize the path
-    let normalized_points = normalizePath(drawn_points, 128);
-    console.log("normalized points: " + normalized_points.length);
-    canvasHandler2.drawPoints(normalized_points);
+    normalized_points = normalizePath(drawn_points, 128); // 2^x
+    canvasHandler2.drawPoints(normalized_points, 1);
+    
+    let minAmplitude=0.01
+    fourier_data = getFourierData(resample2dData(normalized_points)).filter(f => f.amplitude > minAmplitude);
+    console.log("fourier_data.length " + fourier_data.length)
+    fourier_data.sort((a, b) => b.amplitude - a.amplitude);
+
+    animate = true;
   }
 
+  function animateFourier(canvasHandler) {
+    canvasHandler.clear();
+    canvasHandler.drawPath(normalized_points);
+
+    // draw circles
+    let runningX = 0;
+    let runningY = 0;
+
+    console.log("fourier_data.length " + fourier_data.length)
+    const numFouriers = Math.round(slurp(2, fourier_data.length, 1));
+
+
+    console.log("Num Fouriers " + numFouriers)
+
+    for (let i = 0; i < numFouriers; i ++) {
+        const amplitude = fourier_data[i].amplitude;
+        const angle = 2 * Math.PI * fourier_data[i].freq * animAmt + fourier_data[i].phase;
+        
+        console.log("amplitude" + amplitude)
+        console.log("angle" + angle)
+        runningX += amplitude * Math.cos(angle);
+        runningY += amplitude * Math.sin(angle);
+        if (i == 0) {
+            continue; // we skip the first one because we just don't care about rendering the constant term
+        }
+        if (amplitude < 0.5) {
+            continue; // skip the really tiny ones
+        }
+        canvasHandler.drawCircle({ x: runningX, y: runningY }, amplitude, angle)
+        //context2.beginPath();
+        //context2.strokeStyle = 'cyan';
+        //context2.globalAlpha = 0.7;
+        //context2.lineWidth = 1;
+        //context2.moveTo(runningX, runningY);
+        //context2.arc(runningX, runningY, amplitude, angle - Math.PI, angle + Math.PI);
+        //context2.stroke();
+    }
+  }
   //const panel3 = document.getElementById('panel3');
   //const context3 = panel1.getContext('2d');
   //const panel4 = document.getElementById('panel4');

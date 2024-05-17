@@ -15,30 +15,34 @@ export class CanvasHandler {
     this.context.beginPath();
     
     points.forEach((point, index) => {
-      let canvas_point = this.transform(point);
       if (index === 0) {
         // move to first point
-        this.context.moveTo(canvas_point.x, canvas_point.y);
+        this.context.moveTo(point.x, point.y);
       } else {
         // draw line to any other point
-        this.context.lineTo(canvas_point.x, canvas_point.y);
+        this.context.lineTo(point.x, point.y);
       }
     });    
     this.context.stroke();
   }
 
-  drawPoints(points, radius, color  = 'red') {    
+  drawPoints(points, radius = 1, color  = 'red') {
     points.forEach(point => {
-      let canvas_point = this.transform(point);
       this.context.beginPath();
-      this.context.arc(canvas_point.x, canvas_point.y, radius, 0, Math.PI * 2, true);
+      this.context.arc(point.x, point.y, radius, 0, Math.PI * 2, true);
       this.context.fillStyle = color;
       this.context.fill();
       this.context.closePath();
     });
   }
 
-  transform(point) {
-    return {x: point.x - this.canvas.offsetLeft, y: point.y - this.canvas.offsetTop};
+  drawCircle(center, radius, angle, lineWidth = 1, color  = 'cyan', globalAlpha = 0.7) {
+    this.context.strokeStyle = color;
+    this.context.globalAlpha = globalAlpha;
+    this.context.lineWidth = lineWidth;
+
+    this.context.moveTo(center.x, center.y);
+    this.context.arc(center.x, center.y, radius, angle - Math.PI, angle + Math.PI);
+    this.context.stroke();
   }
 }
