@@ -13,7 +13,6 @@ export function normalizePath(path, numPoints) {
   
   let normalizedPath = [];
   let step = totalLength / (numPoints - 1);
-  console.log(step);
   
   // add first point
   normalizedPath.push(path[0]);
@@ -92,6 +91,5 @@ export function getFourierData(points) {
       });
   }
   // fftData.sort((a, b) => b.amplitude - a.amplitude);
-  console.log(fftData.length);
   return fftData;
 }

@@ -1,112 +1,206 @@
-import { CanvasHandler} from './draw-stuff.js';
+import { Canvas} from './components/canvas.js';
+import { Checkbox } from './components/checkbox.js'
+import { Slider } from './components/slider.js'
+import { Color } from './utils/color.js'
 import { normalizePath, resample2dData, getFourierData, slurp } from './math-stuff.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  const canvasHandler1 = new CanvasHandler('canvas1');
-  const canvasHandler2 = new CanvasHandler('canvas2');
-  const canvasHandler3 = new CanvasHandler('canvas3');
-  
-  const drawingfield = canvasHandler1.canvas;
-  drawingfield.addEventListener('mousedown', startdraw);
-  drawingfield.addEventListener('mouseup', endedraw);
-  drawingfield.addEventListener('mousemove', dodraw);
+  let inputBackgroundColor = Color.WHITE;
+  let outputBackgroundColor = Color.BLACK;
+  let inputPointsColor = new Color(255,0,0);
+  let inputPathColor = new Color(0,0,0);
+  let normalizedPointsColor = new Color(0,255,255);
+  let fourierPathColor = Color.YELLOW;
 
-  let drawn_points = [];
-  let normalized_points = [];
-  let fourier_data = [];
+
+  let inputPoints = [];
+  let normalizedPoints = [];
+  let fourierData = [];
+
+  let normalizedPointsInitialExponent = 7;
+  let normalizedPointsAmount = Math.pow(2, normalizedPointsInitialExponent);
+
+  let animationSpeed = 5;
+  let animationPercentage = 0;
+  let frequenciesAmount = 10;
+
+  let showInputPoints = false;
+  let showInputPath = true;
+  let showNormalizedPoints = true;
+
+  let closeLoop = true;
 
   let draw = false;
   let animate = false;
 
-  let animAmt = 1;
+
+  new Checkbox('input-points-checkbox', showInputPoints).component.addEventListener('input', function() {
+    showInputPoints = this.checked;
+    drawInput();
+  });
+
+  new Checkbox('input-path-checkbox', showInputPath).component.addEventListener('input', function() {
+    showInputPath = this.checked;
+    drawInput();
+  });
+
+  new Checkbox('normalized-points-checkbox', showNormalizedPoints).component.addEventListener('input', function() {
+    showNormalizedPoints = this.checked;
+    drawInput();
+  });
+
+  new Checkbox('close-loop-checkbox', closeLoop).component.addEventListener('input', function() {
+    closeLoop = this.checked;
+    setLoopClosed(this.checked);
+    drawInput();
+  });
+  
+  console.log(animationSpeed);
+  new Slider('speed-slider', animationSpeed).component.addEventListener('input', function() {
+    animationSpeed = this.value;
+  });
+
+  new Slider('normalized-slider', normalizedPointsInitialExponent).component.addEventListener('input', function() {
+    normalizedPointsInitialExponent = this.value;
+    normalizedPointsAmount = Math.pow(2, normalizedPointsInitialExponent);
+    inputDataChanged();
+  });
+  
+  new Slider('frequence-slider', frequenciesAmount).component.addEventListener('input', function() {
+    frequenciesAmount = this.value;
+  });
+  
+
 
   
-  setInterval(() => {
-    if(!animate) {
-      return;
-    }
-    animAmt += (100 / 10000) % 1;
-    console.log(animAmt)
-    while (animAmt > 1) {
-        animAmt --;
-    }
-    animateFourier(canvasHandler3);
-  }, 100);
+  const inputCanvas = new Canvas('inputCanvas', inputBackgroundColor);
+  
+  // left mouse key pressed in left canvas
+  inputCanvas.component.addEventListener('mousedown', function() {
 
+    // reset everything
+    reset();
 
-  function startdraw(e) {
-    drawn_points = [];
-    canvasHandler1.clear();
-    canvasHandler2.clear();
-    canvasHandler3.clear();
+    // start drawing mode
     draw = true;
+  });
+
+  // mouse moved in left canvas while holding left mouse key
+  inputCanvas.component.addEventListener('mousemove', function(e) {
+
+    // check if drawing mode
+    if (!draw) return;
+
+    // push new Point
+    inputPoints.push(inputCanvas.transformCoordinates({x: e.clientX, y: e.clientY}));
+
+    // redraw inputCanvas
+    drawInput();
+  });
+
+  // left mouse key released in left canvas after moving
+  inputCanvas.component.addEventListener('mouseup', function() {
+
+    // stop drawing mode
+    draw = false;
+    
+    // close loop
+    if(closeLoop)
+      setLoopClosed(true);
+    
+    animate = true;
+  });
+
+
+  // get the output Canvas
+  const outputCanvas = new Canvas('outputCanvas', outputBackgroundColor);
+
+  // close or open the current loop 
+  function setLoopClosed(closed) {
+    // to close the loop, add the first point again as last point
+    if(closed) {
+      inputPoints.push(inputPoints[0]);
+    } 
+    // to open the loop, remove the last point again
+    else {
+      inputPoints.pop();
+    }
+    inputDataChanged();
+  }
+
+  function inputDataChanged() {
+
+    // normalize Input
+    normalizedPoints = normalizePath(inputPoints, normalizedPointsAmount);
+
+    console.log(normalizedPointsAmount);
+
+    // calculate Fourier
+    fourierData = getFourierData(resample2dData(normalizedPoints)); 
+    //fourierData.filter(f => f.amplitude > minAmplitude);
+    fourierData.sort((a, b) => b.amplitude - a.amplitude);
+
+    // redraw
+    drawInput();
+  }
+
+  // reset canvas and data
+  function reset() {
+    inputCanvas.clear();
+    outputCanvas.clear();
+    inputPoints = [];
+    normalizedPoints = [];
+    fourierData = [];
     animate = false;
   }
 
-  function dodraw(e) {
-    if (!draw) return;
-    drawn_points.push({x: e.clientX, y: e.clientY});
-    canvasHandler1.drawPath(drawn_points, 3);
-    canvasHandler1.drawPoints(drawn_points);
+  // draw input & normalized data
+  function drawInput() {
+    inputCanvas.clear();
+    outputCanvas.clear();
+    if(showInputPath) {
+      inputCanvas.drawPath(inputPoints, 1, inputPathColor);
+    }
+    if(showInputPoints){
+      inputCanvas.drawPoints(inputPoints, 2, inputPointsColor);
+    }
+    if(showNormalizedPoints){
+      inputCanvas.drawPoints(normalizedPoints, 2, normalizedPointsColor);
+    }
   }
 
-  function endedraw() {
-    draw = false;
-
-    // closed loop
-    //drawn_points.push(drawn_points[0]);
-
-    // Normalize the path
-    normalized_points = normalizePath(drawn_points, 128); // 2^x
-    canvasHandler2.drawPoints(normalized_points, 1);
+  // draw fourier animation
+  function drawOutput() {
+    inputCanvas.clear();
+    inputCanvas.drawPathInterpolated(normalizedPoints.slice(0, -normalizedPointsAmount/2), 2, fourierPathColor, outputBackgroundColor);
     
-    let minAmplitude=0.01
-    fourier_data = getFourierData(resample2dData(normalized_points)).filter(f => f.amplitude > minAmplitude);
-    console.log("fourier_data.length " + fourier_data.length)
-    fourier_data.sort((a, b) => b.amplitude - a.amplitude);
-
-    animate = true;
-  }
-
-  function animateFourier(canvasHandler) {
-    canvasHandler.clear();
-    canvasHandler.drawPath(normalized_points);
-
     // draw circles
     let runningX = 0;
     let runningY = 0;
-
-    console.log("fourier_data.length " + fourier_data.length)
-    const numFouriers = Math.round(slurp(2, fourier_data.length, 1));
-
-
-    console.log("Num Fouriers " + numFouriers)
-
-    for (let i = 0; i < numFouriers; i ++) {
-        const amplitude = fourier_data[i].amplitude;
-        const angle = 2 * Math.PI * fourier_data[i].freq * animAmt + fourier_data[i].phase;
+    
+    for (let i = 0; i < frequenciesAmount; i ++) {
+        const amplitude = fourierData[i].amplitude;
+        const angle = 2 * Math.PI * fourierData[i].freq * animationPercentage + fourierData[i].phase;
         
-        console.log("amplitude" + amplitude)
-        console.log("angle" + angle)
         runningX += amplitude * Math.cos(angle);
         runningY += amplitude * Math.sin(angle);
-        if (i == 0) {
-            continue; // we skip the first one because we just don't care about rendering the constant term
-        }
-        if (amplitude < 0.5) {
-            continue; // skip the really tiny ones
-        }
-        canvasHandler.drawCircle({ x: runningX, y: runningY }, amplitude, angle)
-        //context2.beginPath();
-        //context2.strokeStyle = 'cyan';
-        //context2.globalAlpha = 0.7;
-        //context2.lineWidth = 1;
-        //context2.moveTo(runningX, runningY);
-        //context2.arc(runningX, runningY, amplitude, angle - Math.PI, angle + Math.PI);
-        //context2.stroke();
+        if (i == 0) continue; // skip the constant term
+        inputCanvas.drawCircle({ x: runningX, y: runningY }, amplitude, angle, Color.GREEN)
     }
   }
+  
+  setInterval(() => {
+    if(!animate) return;
+
+    animationPercentage = (animationPercentage + animationSpeed*0.01) % 1;
+    
+    drawOutput();
+
+  }, 100); // ms
+
+
+
   //const panel3 = document.getElementById('panel3');
   //const context3 = panel1.getContext('2d');
   //const panel4 = document.getElementById('panel4');
@@ -166,18 +260,18 @@ document.addEventListener('DOMContentLoaded', () => {
   //      animate = true;
   //    }
   //    
-  //    let animAmt = 1;
+  //    let animationPercentage = 1;
   //    let path = [];
   //    setInterval(() => {
   //      if(!animate) {
   //        return;
   //      }
 //
-  //      animAmt += (100 / 10000) % 1;
-  //      console.log(animAmt)
+  //      animationPercentage += (100 / 10000) % 1;
+  //      console.log(animationPercentage)
 //
-  //      while (animAmt > 1) {
-  //          animAmt --;
+  //      while (animationPercentage > 1) {
+  //          animationPercentage --;
   //      }
   //      
   //      context2.clearRect(0, 0, panel2.width, panel2.height);
@@ -185,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
   //      // draw path        
   //      let evenlyDistributedPoints = evenDistribution(points, 64); // 2^x        
   //      
-  //      for (let i = 0; i/evenlyDistributedPoints.length < animAmt; i++) {
+  //      for (let i = 0; i/evenlyDistributedPoints.length < animationPercentage; i++) {
   //          drawCircle(context2, evenlyDistributedPoints[i], 3, 'red')
   //      }
 //
@@ -196,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
   //      const numFouriers = Math.round(slurp(2, fourierData.length, 1));
   //      for (let i = 0; i < numFouriers; i ++) {
   //          const amplitude = fourierData[i].amplitude;
-  //          const angle = 2 * Math.PI * fourierData[i].freq * animAmt + fourierData[i].phase;
+  //          const angle = 2 * Math.PI * fourierData[i].freq * animationPercentage + fourierData[i].phase;
   //          runningX += amplitude * Math.cos(angle);
   //          runningY += amplitude * Math.sin(angle);
   //          if (i == 0) {

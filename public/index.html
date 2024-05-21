@@ -5,10 +5,43 @@
     <title>Malen mit Canvas</title>
 </head>
 <body>
-    <canvas id="canvas1" width="400" height="400" style="border:1px solid #000;"></canvas>
-    <canvas id="canvas2" width="400" height="400" style="border:1px solid #000;"></canvas>
-    <canvas id="canvas3" width="400" height="400" style="border:1px solid #000;"></canvas>
-    <canvas id="canvas4" width="400" height="400" style="border:1px solid #000;"></canvas>
+    <div class="controll-group">
+
+        <div class="conrol-group">
+            <label for="speed-slider">Speed</label>
+            <input type="range" id="speed-slider" min="0" max="10" value="5">
+        </div>
+        <div class="conrol-group">
+            <label for="normalized-slider">Normalized Points</label>
+            <input type="range" id="normalized-slider" min="2" max="10" value="5">
+        </div>
+        <div class="conrol-group">
+            <label for="frequence-slider">Amount of Frequencies</label>
+            <input type="range" id="frequence-slider" min="1" max="20" value="5">
+        </div>
+
+        <div class="conrol-group">
+            <label for="input-points-checkbox">Show Input Points</label>
+            <input type="checkbox" id="input-points-checkbox">
+        </div>
+        <div class="conrol-group">
+            <label for="input-path-checkbox">Show Input Path</label>
+            <input type="checkbox" id="input-path-checkbox">
+        </div>
+        <div class="conrol-group">
+            <label for="normalized-points-checkbox">Show Normalized Points</label>
+            <input type="checkbox" id="normalized-points-checkbox">
+        </div>
+        <div class="conrol-group">
+            <label for="close-loop-checkbox">Close Loop</label>
+            <input type="checkbox" id="close-loop-checkbox">
+        </div>
+    </div>
+
+    <div class = controll-group>
+        <canvas id="inputCanvas" width="600" height="750" style="border:1px solid #000;"></canvas>
+        <canvas id="outputCanvas" width="600" height="750" style="border:1px solid #000;"></canvas>  
+    </div>
     <script src="bundle.js"></script>
 </body>
 </html>
