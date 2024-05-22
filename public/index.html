@@ -9,17 +9,8 @@
 
         <div class="conrol-group">
             <label for="speed-slider">Speed</label>
-            <input type="range" id="speed-slider" min="0" max="10" value="5">
+            <input type="range" id="speed-slider" min="0" max="10">
         </div>
-        <div class="conrol-group">
-            <label for="normalized-slider">Normalized Points</label>
-            <input type="range" id="normalized-slider" min="2" max="10" value="5">
-        </div>
-        <div class="conrol-group">
-            <label for="frequence-slider">Amount of Frequencies</label>
-            <input type="range" id="frequence-slider" min="1" max="20" value="5">
-        </div>
-
         <div class="conrol-group">
             <label for="input-points-checkbox">Show Input Points</label>
             <input type="checkbox" id="input-points-checkbox">
@@ -36,11 +27,38 @@
             <label for="close-loop-checkbox">Close Loop</label>
             <input type="checkbox" id="close-loop-checkbox">
         </div>
+        <div class="conrol-group">
+            <label for="show-circles-checkbox">Show Circles</label>
+            <input type="checkbox" id="show-circles-checkbox">
+        </div>
+        <div class="conrol-group">
+            <label for="show-amplitudes-checkbox">Show Amplitudes</label>
+            <input type="checkbox" id="show-amplitudes-checkbox">
+        </div>
+        <div class="conrol-group">
+            <label for="show-shine-checkbox">Show Shine</label>
+            <input type="checkbox" id="show-shine-checkbox">
+        </div>
+        <div class="conrol-group">
+            <label for="alpha-slider">Alpha</label>
+            <input type="range" id="alpha-slider" min="0" max="100">
+        </div>
+        <div class="conrol-group">
+            <label for="fourier-path-checkbox">Show Fourier Path</label>
+            <input type="checkbox" id="fourier-path-checkbox">
+        </div>
+        <div class="conrol-group">
+            <label for="frequence-slider">Amount of Frequencies</label>
+            <input type="range" id="frequence-slider" min="1" max="20">
+        </div>
+        <div class="conrol-group">
+            <label for="normalized-slider">Fourier Points</label>
+            <input type="range" id="normalized-slider" min="2" max="10">
+        </div>
     </div>
 
     <div class = controll-group>
-        <canvas id="inputCanvas" width="600" height="750" style="border:1px solid #000;"></canvas>
-        <canvas id="outputCanvas" width="600" height="750" style="border:1px solid #000;"></canvas>  
+        <canvas id="canvas" width="1200" height="650" style="border:1px solid #000;"></canvas>
     </div>
     <script src="bundle.js"></script>
 </body>

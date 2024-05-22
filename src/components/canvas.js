@@ -7,8 +7,12 @@ export class Canvas extends Component {
         super(canvasID);
         this.canvas = this.component;
         this.context = this.canvas.getContext('2d');
+
+        this.context.lineWidth = 1;
+        this.context.lineCap = 'round';
+
         this.backgroundColor = backgroundColor;
-        this.background();
+        this.drawBackground();
     }
 
     transformCoordinates(point) {
@@ -17,33 +21,40 @@ export class Canvas extends Component {
   
     clear() {
       this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.background();
     }
 
-    background() {
+    drawBackground() {
       this.context.fillStyle = this.backgroundColor.rgb;
       this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
+
+    set background(value) {
+      this.backgroundColor = value;
+    }
+
+    set alpha(value) {
+      this.context.globalAlpha = value;
+    }
+
+    set lineWidth(value) {
+      this.context.lineWidth = value;
+    }
   
-    drawPoints(points, radius = 1, color  = Color.RED) {
+    drawPoints(points, radius = 1, color = Color.RED) {
       points.forEach(point => {
         this.context.beginPath();
-        this.context.arc(point.x, point.y, radius, 0, Math.PI * 2, true);
+        this.context.arc(point.x, point.y, radius, 0, Math.PI * 2);
         this.context.fillStyle = color.rgb;
         this.context.fill();
         this.context.closePath();
       });
     }
   
-    drawPath(points, lineWidth = 2, startColor = Color.BLACK) {
+    drawPath(points, color = Color.BLACK) {
 
-      this.context.lineWidth = lineWidth;
-      this.context.lineCap = 'round';
-      this.context.strokeStyle = startColor.rgb;
+      this.context.strokeStyle = color.rgb;
 
       this.context.beginPath();
-
-      let factor = 1 / points.length;
       
       points.forEach((point, index) => {        
         if (index === 0) {
@@ -57,10 +68,7 @@ export class Canvas extends Component {
       this.context.stroke();
     }
   
-    drawPathInterpolated(points, lineWidth = 2, startColor, endColor) {
-
-      this.context.lineWidth = lineWidth;
-      this.context.lineCap = 'round';
+    drawPathInterpolated(points, startColor, endColor) {
 
       let currentColor = startColor;
       for (let i = 0; i < points.length - 1; i++) {
@@ -75,14 +83,13 @@ export class Canvas extends Component {
       }
     }
   
-    drawCircle(center, radius, angle, color  = Color.CYAN, lineWidth = 1, globalAlpha = 0.7) {
+    drawCircle(center, radius, angle, color = Color.CYAN) {
       this.context.strokeStyle = color.rgb;
-      this.context.globalAlpha = globalAlpha;
-      this.context.lineWidth = lineWidth;
-  
-      this.context.moveTo(center.x, center.y);
+
+      this.context.beginPath();
       this.context.arc(center.x, center.y, radius, angle - Math.PI, angle + Math.PI);
       this.context.stroke();
+          
     }
   }
   

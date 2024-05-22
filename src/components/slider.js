@@ -3,7 +3,7 @@ import { Component } from './component.js';
 export class Slider extends Component {
     constructor(sliderID, initValue) {
         super(sliderID);
-        this.value = initValue;
+        this.component.value = initValue;
     }
 
     get value() {
