@@ -2,7 +2,7 @@ import FFT from 'fft.js';
 
 export function normalizePath(path, numPoints) {
   let totalLength = 0;
-  let distances = [0];
+  let distances = [];
   
   // Calculate distances between Points and total lenght
   for (let i = 1; i < path.length; i++) {
@@ -46,11 +46,11 @@ function lerp(start, end, ratio) {
     return start + (end - start) * ratio;
 }
 
-export function slurp(val1, val2, amt) {
+function slurp(val1, val2, amt) {
   return (val2 - val1) * amt + val1;
 }
 
-export function resample2dData(points) {
+function resample2dData(points) {
   let numSamples = points.length;
   let newPoints = [];
   for (let i = 0; i < numSamples; i ++) {
@@ -67,6 +67,8 @@ export function resample2dData(points) {
 }
 
 export function getFourierData(points) {
+
+  points = resample2dData(points);
 
   const numPoints = points.length / 2;
   const fft = new FFT(numPoints);
