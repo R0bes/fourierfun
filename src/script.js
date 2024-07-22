@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // animation
     currentAnimationStep = ++currentAnimationStep % animationSteps;
   
-    let animationStepData = fourierAnimation[currentAnimationStep]; 
+    let animationStepData = fourierAnimation[currentAnimationStep];
 
     for (let i = 1; i < frequenciesAmount; i++) {
       if (showAmplitudes) canvas.drawPath([animationStepData[i-1].position, animationStepData[i].position], amplitudesColor, 2, fourierAlpha / 100 * 2);
