@@ -1,65 +1,1068 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Malen mit Canvas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FourierFun - Interaktive Fourier-Animation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body { 
+            height: 100%; 
+            margin: 0; 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: radial-gradient(1200px 800px at 20% 20%, #3b0764 0%, #1e1b4b 35%, #0b0b14 70%, #000 100%);
+            overflow: hidden;
+            color: #E9D5FF;
+        }
+
+        /* Canvas */
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            cursor: crosshair;
+        }
+
+        /* Toggle Button - Entfernt, da Menü jetzt fest ist */
+        #toggleButton {
+            display: none;
+        }
+
+        /* Control Panel - Fest auf der rechten Seite */
+        #controls {
+            display: none; /* Hide old controls */
+        }
+
+        /* Scrollbar Styling */
+        #controls::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #controls::-webkit-scrollbar-track {
+            background: rgba(168, 85, 247, 0.1);
+            border-radius: 3px;
+        }
+
+        #controls::-webkit-scrollbar-thumb {
+            background: rgba(168, 85, 247, 0.5);
+            border-radius: 3px;
+        }
+
+        #controls::-webkit-scrollbar-thumb:hover {
+            background: rgba(168, 85, 247, 0.7);
+        }
+
+        /* Header */
+        .control-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(168, 85, 247, 0.2);
+        }
+
+        .control-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #A855F7, #E9D5FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .control-header p {
+            font-size: 14px;
+            color: #A78BFA;
+            opacity: 0.8;
+        }
+
+        /* Control Groups */
+        .control-group {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(168, 85, 247, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(168, 85, 247, 0.1);
+        }
+
+        .control-group h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #E9D5FF;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group h3::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: linear-gradient(135deg, #A855F7, #8B5CF6);
+            border-radius: 2px;
+        }
+
+        /* Control Items */
+        .control-item {
+            margin-bottom: 15px;
+        }
+
+        .control-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #C4B5FD;
+        }
+
+        .control-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #A855F7;
+            background: rgba(168, 85, 247, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        /* Frequency Controls */
+        .frequency-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .frequency-slider {
+            flex: 1;
+        }
+
+        .frequency-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .freq-btn {
+            background: rgba(168, 85, 247, 0.2);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            color: #E9D5FF;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            min-width: 35px;
+        }
+
+        .freq-btn:hover {
+            background: rgba(168, 85, 247, 0.3);
+            border-color: rgba(168, 85, 247, 0.6);
+            transform: translateY(-1px);
+        }
+
+        .freq-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Range Sliders */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: rgba(168, 85, 247, 0.2);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #A855F7, #8B5CF6);
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+            border: 2px solid #E9D5FF;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(168, 85, 247, 0.6);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #A855F7, #8B5CF6);
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+            border: 2px solid #E9D5FF;
+            cursor: pointer;
+        }
+
+        /* Checkboxes */
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #A855F7;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            font-size: 14px;
+            color: #C4B5FD;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* Buttons */
+        .btn {
+            background: linear-gradient(135deg, #A855F7, #8B5CF6);
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(168, 85, 247, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(168, 85, 247, 0.2);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            color: #E9D5FF;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(168, 85, 247, 0.3);
+            border-color: rgba(168, 85, 247, 0.6);
+        }
+
+        /* Select Box */
+        .control-select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 8px;
+            color: #E9D5FF;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-select:focus {
+            outline: none;
+            border-color: rgba(168, 85, 247, 0.6);
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+        }
+
+        /* Machine Radio Buttons - Left Side */
+        .machine-radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .machine-radio {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            user-select: none;
+            background: rgba(168, 85, 247, 0.05);
+            border: 1px solid rgba(168, 85, 247, 0.1);
+        }
+
+        .machine-radio:hover {
+            background: rgba(168, 85, 247, 0.15);
+            border-color: rgba(168, 85, 247, 0.3);
+        }
+
+        .machine-radio input[type="radio"] {
+            display: none;
+        }
+
+        .radio-custom {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(168, 85, 247, 0.4);
+            border-radius: 50%;
+            position: relative;
+            transition: all 0.2s ease;
+            background: rgba(168, 85, 247, 0.1);
+        }
+
+        .machine-radio input[type="radio"]:checked + .radio-custom {
+            border-color: #A855F7;
+            background: #A855F7;
+            box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+        }
+
+        .machine-label {
+            font-size: 12px;
+            color: #E9D5FF;
+            font-weight: 500;
+        }
+
+        /* Active Machine Info */
+        .active-machine-info {
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            font-weight: 600;
+            color: #E9D5FF;
+        }
+
+        /* Left Machine Panel */
+        .left-machine-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 280px;
+            background: rgba(24, 24, 37, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            border-radius: 12px;
+            padding: 20px;
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .machine-selection-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #E9D5FF;
+            margin-bottom: 15px;
+            text-align: center;
+            background: linear-gradient(135deg, #A855F7, #E9D5FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .machine-radio input[type="radio"]:checked + .radio-custom::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .machine-label {
+            font-size: 14px;
+            color: #C4B5FD;
+            font-weight: 500;
+        }
+
+        .machine-radio input[type="radio"]:checked ~ .machine-label {
+            color: #E9D5FF;
+            font-weight: 600;
+        }
+
+        /* Machine Status Panel - Left Side */
+        .machine-status-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 8px;
+        }
+
+        .machine-status-panel h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #E9D5FF;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .status-label {
+            color: #C4B5FD;
+        }
+
+        .status-value {
+            color: #A855F7;
+            font-weight: 600;
+            background: rgba(168, 85, 247, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* Right Panel - Split into two sections */
+        .right-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 400px;
+            height: 100vh;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .machine-specific-controls {
+            background: linear-gradient(135deg, rgba(24, 24, 37, 0.95), rgba(15, 15, 25, 0.98));
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(168, 85, 247, 0.3);
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .general-controls {
+            background: linear-gradient(135deg, rgba(15, 15, 25, 0.98), rgba(24, 24, 37, 0.95));
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(168, 85, 247, 0.3);
+            border-top: 1px solid rgba(168, 85, 247, 0.3);
+            padding: 20px;
+            max-height: 40vh;
+            overflow-y: auto;
+        }
+
+        /* Scrollbar Styling for both panels */
+        .machine-specific-controls::-webkit-scrollbar,
+        .general-controls::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .machine-specific-controls::-webkit-scrollbar-track,
+        .general-controls::-webkit-scrollbar-track {
+            background: rgba(168, 85, 247, 0.1);
+            border-radius: 3px;
+        }
+
+        .machine-specific-controls::-webkit-scrollbar-thumb,
+        .general-controls::-webkit-scrollbar-thumb {
+            background: rgba(168, 85, 247, 0.5);
+            border-radius: 3px;
+        }
+
+        .machine-specific-controls::-webkit-scrollbar-thumb:hover,
+        .general-controls::-webkit-scrollbar-thumb:hover {
+            background: rgba(168, 85, 247, 0.7);
+        }
+
+        /* Color Display */
+        .color-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+        }
+
+        .color-preview {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .color-name {
+            font-size: 14px;
+            color: #E9D5FF;
+            font-weight: 500;
+        }
+
+        .control-select option {
+            background: #1E1B4B;
+            color: #E9D5FF;
+        }
+
+        /* File Upload */
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            #controls {
+                width: 100vw;
+                right: -100vw;
+            }
+            
+            #toggleButton {
+                top: 10px;
+                right: 10px;
+                padding: 10px 16px;
+                font-size: 12px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="controll-group">
+    <!-- Canvas -->
+    <canvas id="canvas"></canvas>
+    
+    <!-- Left Side Machine Selection -->
+    <div id="leftMachinePanel" class="left-machine-panel">
+        <div class="machine-selection-header">
+            <h3>🎯 Maschinen-Auswahl</h3>
+        </div>
+        <div class="machine-radio-group">
+            <label class="machine-radio">
+                <input type="radio" name="machine" value="A" checked>
+                <span class="radio-custom"></span>
+                <span class="machine-label">🔴 A - Neon Rot</span>
+            </label>
+            <label class="machine-radio">
+                <input type="radio" name="machine" value="B">
+                <span class="radio-custom"></span>
+                <span class="machine-label">🔵 B - Neon Türkis</span>
+            </label>
+            <label class="machine-radio">
+                <input type="radio" name="machine" value="C">
+                <span class="radio-custom"></span>
+                <span class="machine-label">🔷 C - Neon Blau</span>
+            </label>
+            <label class="machine-radio">
+                <input type="radio" name="machine" value="D">
+                <span class="radio-custom"></span>
+                <span class="machine-label">🟡 D - Neon Gelb</span>
+            </label>
+            <label class="machine-radio">
+                <input type="radio" name="machine" value="E">
+                <span class="radio-custom"></span>
+                <span class="machine-label">🟣 E - Neon Lila</span>
+            </label>
+        </div>
+        
+        <!-- Machine Status Panel -->
+        <div class="machine-status-panel">
+            <h4>📊 Maschinen-Status</h4>
+            <div class="status-item">
+                <span class="status-label">Aktive Maschine:</span>
+                <span class="status-value" id="activeMachineStatus">A</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Punkte:</span>
+                <span class="status-value" id="pointsStatus">0</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Fourier:</span>
+                <span class="status-value" id="fourierStatus">0 Komp.</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Farbe:</span>
+                <span class="status-value" id="colorStatus">Neon Rot</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Panel - Split into Machine Specific and General Controls -->
+    <div class="right-panel">
+        <!-- Machine Specific Controls (Top) -->
+        <div class="machine-specific-controls">
+            <div class="control-header">
+                <h2>🎯 Maschinen-Konfiguration</h2>
+                <p>Einstellungen für die aktive Maschine</p>
+            </div>
 
-        <div class="conrol-group">
-            <label for="speed-slider">Speed</label>
-            <input type="range" id="speed-slider" min="0" max="10">
+            <!-- Aktive Maschine Info -->
+            <div class="control-group">
+                <h3>🎯 Aktive Maschine</h3>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Maschine</span>
+                    </div>
+                    <div id="activeMachineInfo" class="active-machine-info">
+                        <span id="activeMachineName">A - Neon Rot</span>
+                    </div>
+                </div>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Farbe</span>
+                    </div>
+                    <div id="currentColorDisplay" class="color-display">
+                        <div class="color-preview" id="colorPreview"></div>
+                        <span id="colorName">Neon Rot</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Animation Controls -->
+            <div class="control-group">
+                <h3>🎬 Animation</h3>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Geschwindigkeit</span>
+                        <span class="control-value" id="speedValue">5</span>
+                    </div>
+                    <input type="range" id="speed" min="1" max="10" value="5" class="frequency-slider">
+                </div>
+
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Transparenz (Alpha)</span>
+                        <span class="control-value" id="alphaValue">0.4</span>
+                    </div>
+                    <input type="range" id="alpha" min="0" max="1" step="0.05" value="0.4">
+                </div>
+
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Trail-Länge</span>
+                        <span class="control-value" id="trailLengthValue">25</span>
+                    </div>
+                    <input type="range" id="trailLength" min="5" max="50" step="1" value="25">
+                </div>
+
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Trail-Helligkeit</span>
+                        <span class="control-value" id="trailBrightnessValue">0.8</span>
+                    </div>
+                    <input type="range" id="trailBrightness" min="0.1" max="1.0" step="0.1" value="0.8">
+                </div>
+            </div>
+
+            <!-- Fourier Parameters -->
+            <div class="control-group">
+                <h3>🔢 Fourier-Parameter</h3>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Anzahl Frequenzen</span>
+                        <span class="control-value" id="freqValue">10</span>
+                    </div>
+                    <div class="frequency-controls">
+                        <input type="range" id="freq" min="1" max="128" value="10" class="frequency-slider">
+                        <div class="frequency-buttons">
+                            <button class="freq-btn" id="freqMinus10">-10</button>
+                            <button class="freq-btn" id="freqMinus1">-1</button>
+                            <button class="freq-btn" id="freqPlus1">+1</button>
+                            <button class="freq-btn" id="freqPlus10">+10</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Anzahl Samples</span>
+                        <span class="control-value" id="samplesValue">1024</span>
+                    </div>
+                    <input type="range" id="samples" min="64" max="2048" step="64" value="1024">
+                </div>
+            </div>
+
+            <!-- Display Options -->
+            <div class="control-group">
+                <h3>👁️ Anzeige-Optionen</h3>
+                
+                <div class="checkbox-item">
+                    <input type="checkbox" id="toggleCircles" checked>
+                    <label for="toggleCircles">Kreise anzeigen</label>
+                </div>
+
+                <div class="checkbox-item">
+                    <input type="checkbox" id="toggleLines" checked>
+                    <label for="toggleLines">Linien anzeigen</label>
+                </div>
+
+                <div class="checkbox-item">
+                    <input type="checkbox" id="toggleTrail" checked>
+                    <label for="toggleTrail">Trail anzeigen</label>
+                </div>
+
+                <div class="checkbox-item">
+                    <input type="checkbox" id="toggleOriginalLine" checked>
+                    <label for="toggleOriginalLine">✏️ Original-Linie anzeigen</label>
+                </div>
+            </div>
+
+            <!-- Erweiterte Visualisierungen -->
+            <div class="control-group">
+                <h3>🔬 Erweiterte Visualisierungen</h3>
+                
+                <div class="checkbox-item">
+                    <input type="checkbox" id="toggleHarmonics" checked>
+                    <label for="toggleHarmonics">Harmonische anzeigen</label>
+                </div>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Anzahl Harmonische</span>
+                        <span class="control-value" id="harmonicsCountValue">5</span>
+                    </div>
+                    <input type="range" id="harmonicsCount" min="1" max="20" step="1" value="5">
+                </div>
+                
+                <div class="checkbox-item">
+                    <input type="checkbox" id="toggleFrequencySpectrum">
+                    <label for="toggleFrequencySpectrum">Frequenzspektrum anzeigen</label>
+                </div>
+                
+                <div class="checkbox-item">
+                    <input type="checkbox" id="togglePhaseDiagram">
+                    <label for="togglePhaseDiagram">Phasendiagramm anzeigen</label>
+                </div>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Glow-Intensität</span>
+                        <span class="control-value" id="glowIntensityValue">1.0</span>
+                    </div>
+                    <input type="range" id="glowIntensity" min="0.1" max="2.0" step="0.1" value="1.0">
+                </div>
+            </div>
         </div>
-        <div class="conrol-group">
-            <label for="input-points-checkbox">Show Input Points</label>
-            <input type="checkbox" id="input-points-checkbox">
-        </div>
-        <div class="conrol-group">
-            <label for="input-path-checkbox">Show Input Path</label>
-            <input type="checkbox" id="input-path-checkbox">
-        </div>
-        <div class="conrol-group">
-            <label for="normalized-points-checkbox">Show Normalized Points</label>
-            <input type="checkbox" id="normalized-points-checkbox">
-        </div>
-        <div class="conrol-group">
-            <label for="close-loop-checkbox">Close Loop</label>
-            <input type="checkbox" id="close-loop-checkbox">
-        </div>
-        <div class="conrol-group">
-            <label for="show-circles-checkbox">Show Circles</label>
-            <input type="checkbox" id="show-circles-checkbox">
-        </div>
-        <div class="conrol-group">
-            <label for="show-amplitudes-checkbox">Show Amplitudes</label>
-            <input type="checkbox" id="show-amplitudes-checkbox">
-        </div>
-        <div class="conrol-group">
-            <label for="show-shine-checkbox">Show Shine</label>
-            <input type="checkbox" id="show-shine-checkbox">
-        </div>
-        <div class="conrol-group">
-            <label for="alpha-slider">Alpha</label>
-            <input type="range" id="alpha-slider" min="0" max="100">
-        </div>
-        <div class="conrol-group">
-            <label for="fourier-path-checkbox">Show Fourier Path</label>
-            <input type="checkbox" id="fourier-path-checkbox">
-        </div>
-        <div class="conrol-group">
-            <label for="frequence-slider">Amount of Frequencies</label>
-            <input type="range" id="frequence-slider" min="1" max="20">
-        </div>
-        <div class="conrol-group">
-            <label for="normalized-slider">Fourier Points</label>
-            <input type="range" id="normalized-slider" min="2" max="10">
+
+        <!-- General Controls (Bottom) -->
+        <div class="general-controls">
+            <div class="control-header">
+                <h2>⚙️ Allgemeine Konfiguration</h2>
+                <p>Globale Einstellungen und System</p>
+            </div>
+
+            <!-- Grid Controls -->
+            <div class="control-group">
+                <h3>🔲 Grid-Einstellungen</h3>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Zellgröße</span>
+                        <span class="control-value" id="cellValue">20</span>
+                    </div>
+                    <input type="range" id="cellSize" min="10" max="60" step="2" value="20">
+                </div>
+
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Linien-Dicke</span>
+                        <span class="control-value" id="thickValue">3</span>
+                    </div>
+                    <input type="range" id="thick" min="0" max="6" step="1" value="3">
+                </div>
+
+                <div class="checkbox-item">
+                    <input type="checkbox" id="toggleGrid" checked>
+                    <label for="toggleGrid">Gitter anzeigen</label>
+                </div>
+
+                <div class="checkbox-item">
+                    <input type="checkbox" id="toggleWavePattern">
+                    <label for="toggleWavePattern">Wellen-Muster</label>
+                </div>
+
+                <div class="checkbox-item">
+                    <input type="checkbox" id="toggleRainbowMode">
+                    <label for="toggleRainbowMode">Regenbogen-Modus</label>
+                </div>
+
+                <div class="checkbox-item">
+                    <input type="checkbox" id="toggleParticleSystem">
+                    <label for="toggleParticleSystem">Partikel-System</label>
+                </div>
+            </div>
+
+            <!-- Character Trail -->
+            <div class="control-group">
+                <h3>✨ Char-Trail</h3>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Char-Trail Länge</span>
+                        <span class="control-value" id="characterTrailLengthValue">33</span>
+                    </div>
+                    <input type="range" id="characterTrailLength" min="10" max="100" step="1" value="33">
+                </div>
+
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Char-Trail Intensität</span>
+                        <span class="control-value" id="characterTrailIntensityValue">1.0</span>
+                    </div>
+                    <input type="range" id="characterTrailIntensity" min="0.1" max="1.0" step="0.1" value="1.0">
+                </div>
+
+                <div class="checkbox-item">
+                    <input type="checkbox" id="toggleCharTrail" checked>
+                    <label for="toggleCharTrail">Char-Trail anzeigen</label>
+                </div>
+            </div>
+
+            <!-- Image Upload -->
+            <div class="control-group">
+                <h3>🖼️ Bild-Upload</h3>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Bild-Schwelle</span>
+                        <span class="control-value" id="imageThresholdValue">128</span>
+                    </div>
+                    <input type="range" id="imageThreshold" min="0" max="255" value="128">
+                </div>
+
+                <div class="file-upload">
+                    <input type="file" id="imageUpload" accept="image/*">
+                    <button class="btn btn-secondary" id="uploadImage">📁 Bild hochladen</button>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="control-group">
+                <h3>⚡ Aktionen</h3>
+                
+                <button class="btn" id="reset">🔄 Alles zurücksetzen</button>
+            </div>
         </div>
     </div>
 
-    <div class = controll-group>
-        <canvas id="canvas" width="1200" height="450" style="border:1px solid #000;"></canvas>
-    </div>
     <script src="bundle.js"></script>
+    <script>
+        // Radio button functionality for machine selection
+        const machineRadios = document.querySelectorAll('input[name="machine"]');
+        machineRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) {
+                    // Update color display and active machine info
+                    updateColorDisplay(radio.value);
+                    updateActiveMachineInfo(radio.value);
+                    
+                    // Notify the TypeScript application about machine change
+                    if (window.multiMachine) {
+                        window.multiMachine.setActiveMachine(radio.value);
+                    }
+                }
+            });
+        });
+
+        // Update all control values in real-time
+        // Update all control values in real-time
+        function updateControlValue(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        // Frequency control buttons
+        const freqSlider = document.getElementById('freq');
+        const freqMinus10 = document.getElementById('freqMinus10');
+        const freqMinus1 = document.getElementById('freqMinus1');
+        const freqPlus1 = document.getElementById('freqPlus1');
+        const freqPlus10 = document.getElementById('freqPlus10');
+
+        freqMinus10.addEventListener('click', () => {
+            const newValue = Math.max(1, parseInt(freqSlider.value) - 10);
+            freqSlider.value = newValue;
+            updateControlValue('freqValue', newValue);
+            freqSlider.dispatchEvent(new Event('input'));
+        });
+
+        freqMinus1.addEventListener('click', () => {
+            const newValue = Math.max(1, parseInt(freqSlider.value) - 1);
+            freqSlider.value = newValue;
+            updateControlValue('freqValue', newValue);
+            freqSlider.dispatchEvent(new Event('input'));
+        });
+
+        freqPlus1.addEventListener('click', () => {
+            const newValue = Math.min(128, parseInt(freqSlider.value) + 1);
+            freqSlider.value = newValue;
+            updateControlValue('freqValue', newValue);
+            freqSlider.dispatchEvent(new Event('input'));
+        });
+
+        freqPlus10.addEventListener('click', () => {
+            const newValue = Math.min(128, parseInt(freqSlider.value) + 10);
+            freqSlider.value = newValue;
+            updateControlValue('freqValue', newValue);
+            freqSlider.dispatchEvent(new Event('input'));
+        });
+
+        // Real-time value updates for all sliders
+        const sliders = document.querySelectorAll('input[type="range"]');
+        sliders.forEach(slider => {
+            const id = slider.id;
+            const valueId = id + 'Value';
+            
+            // Set initial value
+            updateControlValue(valueId, slider.value);
+            
+            // Update on change
+            slider.addEventListener('input', () => {
+                updateControlValue(valueId, slider.value);
+            });
+        });
+
+
+
+        // Farbanzeige aktualisieren
+        function updateColorDisplay(machineId) {
+            const colorPreview = document.getElementById('colorPreview');
+            const colorName = document.getElementById('colorName');
+            
+            if (colorPreview && colorName) {
+                switch (machineId) {
+                    case 'A':
+                        colorPreview.style.backgroundColor = '#FF6B6B';
+                        colorPreview.style.boxShadow = '0 0 15px #FF4757';
+                        colorName.textContent = 'Neon Rot';
+                        break;
+                    case 'B':
+                        colorPreview.style.backgroundColor = '#4ECDC4';
+                        colorPreview.style.boxShadow = '0 0 15px #00D2D3';
+                        colorName.textContent = 'Neon Türkis';
+                        break;
+                    case 'C':
+                        colorPreview.style.backgroundColor = '#45B7D1';
+                        colorPreview.style.boxShadow = '0 0 15px #54A0FF';
+                        colorName.textContent = 'Neon Blau';
+                        break;
+                    case 'D':
+                        colorPreview.style.backgroundColor = '#FCD34D';
+                        colorPreview.style.boxShadow = '0 0 15px #F59E0B';
+                        colorName.textContent = 'Neon Gelb';
+                        break;
+                    case 'E':
+                        colorPreview.style.backgroundColor = '#A855F7';
+                        colorPreview.style.boxShadow = '0 0 15px #8B5CF6';
+                        colorName.textContent = 'Neon Lila';
+                        break;
+                    default:
+                        colorPreview.style.backgroundColor = '#A55EEA';
+                        colorPreview.style.boxShadow = '0 0 15px #8B5CF6';
+                        colorName.textContent = 'Neon Lila';
+                }
+            }
+        }
+
+        // Aktive Maschinen-Info aktualisieren
+        function updateActiveMachineInfo(machineId) {
+            const activeMachineName = document.getElementById('activeMachineName');
+            const activeMachineStatus = document.getElementById('activeMachineStatus');
+            const colorStatus = document.getElementById('colorStatus');
+            
+            if (activeMachineName) {
+                switch (machineId) {
+                    case 'A':
+                        activeMachineName.textContent = 'A - Neon Rot';
+                        if (activeMachineStatus) activeMachineStatus.textContent = 'A';
+                        if (colorStatus) colorStatus.textContent = 'Neon Rot';
+                        break;
+                    case 'B':
+                        activeMachineName.textContent = 'B - Neon Türkis';
+                        if (activeMachineStatus) activeMachineStatus.textContent = 'B';
+                        if (colorStatus) colorStatus.textContent = 'Neon Türkis';
+                        break;
+                    case 'C':
+                        activeMachineName.textContent = 'C - Neon Blau';
+                        if (activeMachineStatus) activeMachineStatus.textContent = 'C';
+                        if (colorStatus) colorStatus.textContent = 'Neon Blau';
+                        break;
+                    case 'D':
+                        activeMachineName.textContent = 'D - Neon Gelb';
+                        if (activeMachineStatus) activeMachineStatus.textContent = 'D';
+                        if (colorStatus) colorStatus.textContent = 'Neon Gelb';
+                        break;
+                    case 'E':
+                        activeMachineName.textContent = 'E - Neon Lila';
+                        if (activeMachineStatus) activeMachineStatus.textContent = 'E';
+                        if (colorStatus) colorStatus.textContent = 'Neon Lila';
+                        break;
+                    default:
+                        activeMachineName.textContent = 'A - Neon Rot';
+                        if (activeMachineStatus) activeMachineStatus.textContent = 'A';
+                        if (colorStatus) colorStatus.textContent = 'Neon Rot';
+                }
+            }
+        }
+
+        // Maschinenstatus aktualisieren
+        function updateMachineStatus(points, fourierComponents) {
+            const pointsStatus = document.getElementById('pointsStatus');
+            const fourierStatus = document.getElementById('fourierStatus');
+            
+            if (pointsStatus) pointsStatus.textContent = points || '0';
+            if (fourierStatus) fourierStatus.textContent = (fourierComponents || '0') + ' Komp.';
+        }
+
+        // Status alle 500ms aktualisieren (wird von der App aufgerufen)
+        setInterval(() => {
+            if (window.multiMachine) {
+                const activeMachine = window.multiMachine.getActiveMachine();
+                if (activeMachine) {
+                    const points = activeMachine.currentDrawing ? activeMachine.currentDrawing.length : 0;
+                    const fourierComponents = activeMachine.fourierCoefficients ? activeMachine.fourierCoefficients.length : 0;
+                    updateMachineStatus(points, fourierComponents);
+                }
+            }
+        }, 500);
+
+        // Initiale Farbanzeige setzen
+        updateColorDisplay('A');
+        updateActiveMachineInfo('A');
+    </script>
 </body>
 </html>

@@ -1,21 +1,83 @@
 {
-  "name": "complexfft",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "bundle": "npx webpack"
+  "name": "fourierfun",
+  "version": "2.0.0",
+  "description": "Interaktive Fourier-Animation - Erlebe die Schönheit der Mathematik durch visuelle Animationen",
+  "main": "server.js",
+  "homepage": "https://fourierfun.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/fourierfun.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yourusername/fourierfun/issues"
+  },
+  "keywords": [
+    "fourier",
+    "animation",
+    "mathematics",
+    "interactive",
+    "canvas",
+    "typescript",
+    "javascript",
+    "visualization",
+    "education",
+    "math",
+    "transform"
+  ],
+  "author": {
+    "name": "FourierFun Team",
+    "email": "team@fourierfun.com",
+    "url": "https://fourierfun.com"
+  },
+  "contributors": [
+    {
+      "name": "Your Name",
+      "email": "your.email@example.com"
+    }
+  ],
+  "license": "MIT",
+  "scripts": {
+    "start": "npm run dev",
+    "dev": "npm run bundle && node server.js",
+    "build": "npm run bundle",
+    "bundle": "npx webpack --mode production",
+    "bundle:dev": "npx webpack --mode development --watch",
+    "serve": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "echo \"No linter configured\"",
+    "format": "echo \"No formatter configured\"",
+    "clean": "rm -rf dist bundle.js",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  },
   "dependencies": {
     "express": "^4.19.2",
     "fft.js": "^4.0.4"
   },
   "devDependencies": {
     "webpack": "^5.91.0",
-    "webpack-cli": "^5.1.4"
+    "webpack-cli": "^5.1.4",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.4.5"
+  },
+  "files": [
+    "public/",
+    "src/",
+    "server.js",
+    "webpack.config.js",
+    "tsconfig.json",
+    "package.json",
+    "README.md"
+  ],
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }
