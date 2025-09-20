@@ -23,12 +23,12 @@
             color: #E9D5FF;
         }
 
-        /* Canvas */
+        /* Canvas - Responsive Größe */
         #canvas {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100vw;
+            width: calc(100vw - 400px); /* 400px für das Menü abziehen */
             height: 100vh;
             z-index: 1;
             cursor: crosshair;
@@ -295,12 +295,38 @@
             box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
         }
 
-        /* Machine Radio Buttons - Left Side */
-        .machine-radio-group {
+        /* Machine List - Left Side */
+        .machine-list {
             display: flex;
             flex-direction: column;
             gap: 8px;
             margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .machine-item {
+            position: relative;
+        }
+        
+        .remove-machine-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid rgba(255, 107, 107, 0.4);
+            color: #FF6B6B;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .remove-machine-btn:hover {
+            background: rgba(255, 107, 107, 0.3);
+            border-color: rgba(255, 107, 107, 0.6);
         }
 
         .machine-radio {
@@ -358,93 +384,8 @@
             color: #E9D5FF;
         }
 
-        /* Left Machine Panel */
-        .left-machine-panel {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            width: 280px;
-            background: rgba(24, 24, 37, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(168, 85, 247, 0.4);
-            border-radius: 12px;
-            padding: 20px;
-            z-index: 100;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
 
-        .machine-selection-header h3 {
-            font-size: 16px;
-            font-weight: 600;
-            color: #E9D5FF;
-            margin-bottom: 15px;
-            text-align: center;
-            background: linear-gradient(135deg, #A855F7, #E9D5FF);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .machine-radio input[type="radio"]:checked + .radio-custom::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 8px;
-            height: 8px;
-            background: white;
-            border-radius: 50%;
-        }
-
-        .machine-label {
-            font-size: 14px;
-            color: #C4B5FD;
-            font-weight: 500;
-        }
-
-        .machine-radio input[type="radio"]:checked ~ .machine-label {
-            color: #E9D5FF;
-            font-weight: 600;
-        }
-
-        /* Machine Status Panel - Left Side */
-        .machine-status-panel {
-            margin-top: 20px;
-            padding: 15px;
-            background: rgba(168, 85, 247, 0.1);
-            border: 1px solid rgba(168, 85, 247, 0.3);
-            border-radius: 8px;
-        }
-
-        .machine-status-panel h4 {
-            font-size: 14px;
-            font-weight: 600;
-            color: #E9D5FF;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .status-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            font-size: 12px;
-        }
-
-        .status-label {
-            color: #C4B5FD;
-        }
-
-        .status-value {
-            color: #A855F7;
-            font-weight: 600;
-            background: rgba(168, 85, 247, 0.1);
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-
-        /* Right Panel - Split into two sections */
+        /* Right Panel - Tab System */
         .right-panel {
             position: fixed;
             top: 0;
@@ -454,26 +395,177 @@
             z-index: 999;
             display: flex;
             flex-direction: column;
+            transition: all 0.3s ease;
+        }
+        
+        .right-panel.left-side {
+            right: auto;
+            left: 0;
+        }
+        
+        /* Collapse Buttons */
+        .collapse-buttons {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .right-panel .collapse-buttons {
+            left: -40px;
+        }
+        
+        .right-panel.left-side .collapse-buttons {
+            right: -40px;
+            left: auto;
+        }
+        
+        .collapse-btn {
+            width: 30px;
+            height: 40px;
+            background: rgba(168, 85, 247, 0.9);
+            border: 1px solid rgba(168, 85, 247, 0.6);
+            color: white;
+            border-radius: 6px 0 0 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .right-panel.left-side .collapse-btn {
+            border-radius: 0 6px 6px 0;
+        }
+        
+        .collapse-btn:hover {
+            background: rgba(168, 85, 247, 1);
+            border-color: rgba(168, 85, 247, 0.8);
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        
+        .collapse-btn:active {
+            transform: scale(0.95);
         }
 
-        .machine-specific-controls {
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            background: rgba(24, 24, 37, 0.95);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(168, 85, 247, 0.3);
+            border-bottom: 1px solid rgba(168, 85, 247, 0.3);
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #C4B5FD;
+            padding: 12px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn:hover {
+            background: rgba(168, 85, 247, 0.1);
+            color: #E9D5FF;
+        }
+
+        .tab-btn.active {
+            color: #E9D5FF;
+            background: rgba(168, 85, 247, 0.15);
+            border-bottom-color: #A855F7;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
             background: linear-gradient(135deg, rgba(24, 24, 37, 0.95), rgba(15, 15, 25, 0.98));
             backdrop-filter: blur(20px);
             border-left: 1px solid rgba(168, 85, 247, 0.3);
-            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
-            padding: 20px;
-            flex: 1;
-            overflow-y: auto;
         }
 
-        .general-controls {
-            background: linear-gradient(135deg, rgba(15, 15, 25, 0.98), rgba(24, 24, 37, 0.95));
-            backdrop-filter: blur(20px);
-            border-left: 1px solid rgba(168, 85, 247, 0.3);
-            border-top: 1px solid rgba(168, 85, 247, 0.3);
+        .tab-panel {
+            display: none;
             padding: 20px;
-            max-height: 40vh;
+            height: 100%;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .machine-list-tab {
+            max-height: 200px;
             overflow-y: auto;
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            background: rgba(168, 85, 247, 0.05);
+        }
+        
+        .machine-item-tab {
+            margin-bottom: 8px;
+        }
+        
+        .machine-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        
+        .machine-info:hover {
+            background: rgba(168, 85, 247, 0.15);
+            border-color: rgba(168, 85, 247, 0.4);
+        }
+        
+        .machine-info.active {
+            background: rgba(168, 85, 247, 0.2);
+            border-color: rgba(168, 85, 247, 0.5);
+        }
+        
+        .machine-name {
+            font-weight: 600;
+            color: #E9D5FF;
+        }
+        
+        .machine-id {
+            font-size: 11px;
+            color: #A78BFA;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .select-machine-btn {
+            background: rgba(168, 85, 247, 0.2);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            color: #E9D5FF;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s ease;
+        }
+        
+        .select-machine-btn:hover {
+            background: rgba(168, 85, 247, 0.3);
+            border-color: rgba(168, 85, 247, 0.6);
         }
 
         /* Scrollbar Styling for both panels */
@@ -561,65 +653,26 @@
     <!-- Canvas -->
     <canvas id="canvas"></canvas>
     
-    <!-- Left Side Machine Selection -->
-    <div id="leftMachinePanel" class="left-machine-panel">
-        <div class="machine-selection-header">
-            <h3>🎯 Maschinen-Auswahl</h3>
-        </div>
-        <div class="machine-radio-group">
-            <label class="machine-radio">
-                <input type="radio" name="machine" value="A" checked>
-                <span class="radio-custom"></span>
-                <span class="machine-label">🔴 A - Neon Rot</span>
-            </label>
-            <label class="machine-radio">
-                <input type="radio" name="machine" value="B">
-                <span class="radio-custom"></span>
-                <span class="machine-label">🔵 B - Neon Türkis</span>
-            </label>
-            <label class="machine-radio">
-                <input type="radio" name="machine" value="C">
-                <span class="radio-custom"></span>
-                <span class="machine-label">🔷 C - Neon Blau</span>
-            </label>
-            <label class="machine-radio">
-                <input type="radio" name="machine" value="D">
-                <span class="radio-custom"></span>
-                <span class="machine-label">🟡 D - Neon Gelb</span>
-            </label>
-            <label class="machine-radio">
-                <input type="radio" name="machine" value="E">
-                <span class="radio-custom"></span>
-                <span class="machine-label">🟣 E - Neon Lila</span>
-            </label>
+    
+    <!-- Right Panel - Tab System -->
+    <div id="rightPanel" class="right-panel">
+        <!-- Collapse Buttons -->
+        <div class="collapse-buttons">
+            <button id="collapseLeftBtn" class="collapse-btn left" title="Menü nach links verschieben">◀</button>
+            <button id="collapseRightBtn" class="collapse-btn right" title="Menü nach rechts verschieben">▶</button>
         </div>
         
-        <!-- Machine Status Panel -->
-        <div class="machine-status-panel">
-            <h4>📊 Maschinen-Status</h4>
-            <div class="status-item">
-                <span class="status-label">Aktive Maschine:</span>
-                <span class="status-value" id="activeMachineStatus">A</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">Punkte:</span>
-                <span class="status-value" id="pointsStatus">0</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">Fourier:</span>
-                <span class="status-value" id="fourierStatus">0 Komp.</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">Farbe:</span>
-                <span class="status-value" id="colorStatus">Neon Rot</span>
-            </div>
-        </div>
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" data-tab="machine-config">🎯 Maschine</button>
+            <button class="tab-btn" data-tab="general-config">⚙️ Allgemein</button>
+            <button class="tab-btn" data-tab="machine-management">🔧 Verwaltung</button>
     </div>
     
-    <!-- Right Panel - Split into Machine Specific and General Controls -->
-    <div class="right-panel">
-        <!-- Machine Specific Controls (Top) -->
-        <div class="machine-specific-controls">
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Machine Configuration Tab -->
+            <div id="machine-config" class="tab-panel active">
             <div class="control-header">
                 <h2>🎯 Maschinen-Konfiguration</h2>
                 <p>Einstellungen für die aktive Maschine</p>
@@ -634,18 +687,118 @@
                         <span>Maschine</span>
                     </div>
                     <div id="activeMachineInfo" class="active-machine-info">
-                        <span id="activeMachineName">A - Neon Rot</span>
+                        <span id="activeMachineName">Machine 1</span>
                     </div>
+                    </div>
+                </div>
+
+            <!-- Komponenten-Farben -->
+            <div class="control-group">
+                <h3>🎨 Komponenten-Farben</h3>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Kreise</span>
+                    </div>
+                    <select id="circlesColor" class="control-select">
+                        <option value="#FF6B6B">Neon Rot</option>
+                        <option value="#4ECDC4">Neon Türkis</option>
+                        <option value="#45B7D1">Neon Blau</option>
+                        <option value="#FCD34D">Neon Gelb</option>
+                        <option value="#A855F7">Neon Lila</option>
+                        <option value="#2ECC71">Neon Grün</option>
+                        <option value="#FF9F43">Neon Orange</option>
+                        <option value="#FF6B9D">Neon Pink</option>
+                        <option value="#00CEC9">Neon Cyan</option>
+                        <option value="#E84393">Neon Magenta</option>
+                        <option value="rainbow">Regenbogen</option>
+                        <option value="matching">Zusammengehörig</option>
+                        <option value="transparent">Transparent</option>
+                    </select>
+                    </div>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Amplituden</span>
+                    </div>
+                    <select id="amplitudesColor" class="control-select">
+                        <option value="#FF6B6B">Neon Rot</option>
+                        <option value="#4ECDC4">Neon Türkis</option>
+                        <option value="#45B7D1">Neon Blau</option>
+                        <option value="#FCD34D">Neon Gelb</option>
+                        <option value="#A855F7">Neon Lila</option>
+                        <option value="#2ECC71">Neon Grün</option>
+                        <option value="#FF9F43">Neon Orange</option>
+                        <option value="#FF6B9D">Neon Pink</option>
+                        <option value="#00CEC9">Neon Cyan</option>
+                        <option value="#E84393">Neon Magenta</option>
+                        <option value="rainbow">Regenbogen</option>
+                        <option value="matching">Zusammengehörig</option>
+                        <option value="transparent">Transparent</option>
+                    </select>
                 </div>
                 
                 <div class="control-item">
                     <div class="control-label">
-                        <span>Farbe</span>
+                        <span>Trail</span>
                     </div>
-                    <div id="currentColorDisplay" class="color-display">
-                        <div class="color-preview" id="colorPreview"></div>
-                        <span id="colorName">Neon Rot</span>
+                    <select id="trailColor" class="control-select">
+                        <option value="#FF6B6B">Neon Rot</option>
+                        <option value="#4ECDC4">Neon Türkis</option>
+                        <option value="#45B7D1">Neon Blau</option>
+                        <option value="#FCD34D">Neon Gelb</option>
+                        <option value="#A855F7">Neon Lila</option>
+                        <option value="#2ECC71">Neon Grün</option>
+                        <option value="#FF9F43">Neon Orange</option>
+                        <option value="#FF6B9D">Neon Pink</option>
+                        <option value="#00CEC9">Neon Cyan</option>
+                        <option value="#E84393">Neon Magenta</option>
+                        <option value="rainbow">Regenbogen</option>
+                        <option value="matching">Zusammengehörig</option>
+                        <option value="transparent">Transparent</option>
+                    </select>
+                </div>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Pfad</span>
                     </div>
+                    <select id="pathColor" class="control-select">
+                        <option value="#FF6B6B">Neon Rot</option>
+                        <option value="#4ECDC4">Neon Türkis</option>
+                        <option value="#45B7D1">Neon Blau</option>
+                        <option value="#FCD34D">Neon Gelb</option>
+                        <option value="#A855F7">Neon Lila</option>
+                        <option value="#2ECC71">Neon Grün</option>
+                        <option value="#FF9F43">Neon Orange</option>
+                        <option value="#FF6B9D">Neon Pink</option>
+                        <option value="#00CEC9">Neon Cyan</option>
+                        <option value="#E84393">Neon Magenta</option>
+                        <option value="rainbow">Regenbogen</option>
+                        <option value="matching">Zusammengehörig</option>
+                        <option value="transparent">Transparent</option>
+                    </select>
+                </div>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Glow</span>
+                    </div>
+                    <select id="glowColor" class="control-select">
+                        <option value="#FF4757">Neon Rot Glow</option>
+                        <option value="#00D2D3">Neon Türkis Glow</option>
+                        <option value="#54A0FF">Neon Blau Glow</option>
+                        <option value="#F59E0B">Neon Gelb Glow</option>
+                        <option value="#8B5CF6">Neon Lila Glow</option>
+                        <option value="#27AE60">Neon Grün Glow</option>
+                        <option value="#FF6348">Neon Orange Glow</option>
+                        <option value="#FF3838">Neon Pink Glow</option>
+                        <option value="#00B894">Neon Cyan Glow</option>
+                        <option value="#D63031">Neon Magenta Glow</option>
+                        <option value="rainbow">Regenbogen</option>
+                        <option value="matching">Zusammengehörig</option>
+                        <option value="transparent">Transparent</option>
+                    </select>
                 </div>
             </div>
 
@@ -726,7 +879,7 @@
 
                 <div class="checkbox-item">
                     <input type="checkbox" id="toggleLines" checked>
-                    <label for="toggleLines">Linien anzeigen</label>
+                    <label for="toggleLines">Amplituden anzeigen</label>
                 </div>
 
                 <div class="checkbox-item">
@@ -734,10 +887,6 @@
                     <label for="toggleTrail">Trail anzeigen</label>
                 </div>
 
-                <div class="checkbox-item">
-                    <input type="checkbox" id="toggleOriginalLine" checked>
-                    <label for="toggleOriginalLine">✏️ Original-Linie anzeigen</label>
-                </div>
             </div>
 
             <!-- Erweiterte Visualisierungen -->
@@ -758,12 +907,12 @@
                 </div>
                 
                 <div class="checkbox-item">
-                    <input type="checkbox" id="toggleFrequencySpectrum">
+                    <input type="checkbox" id="toggleFrequencySpectrum" checked>
                     <label for="toggleFrequencySpectrum">Frequenzspektrum anzeigen</label>
                 </div>
                 
                 <div class="checkbox-item">
-                    <input type="checkbox" id="togglePhaseDiagram">
+                    <input type="checkbox" id="togglePhaseDiagram" checked>
                     <label for="togglePhaseDiagram">Phasendiagramm anzeigen</label>
                 </div>
                 
@@ -777,8 +926,8 @@
             </div>
         </div>
 
-        <!-- General Controls (Bottom) -->
-        <div class="general-controls">
+            <!-- General Configuration Tab -->
+            <div id="general-config" class="tab-panel">
             <div class="control-header">
                 <h2>⚙️ Allgemeine Konfiguration</h2>
                 <p>Globale Einstellungen und System</p>
@@ -796,23 +945,12 @@
                     <input type="range" id="cellSize" min="10" max="60" step="2" value="20">
                 </div>
 
-                <div class="control-item">
-                    <div class="control-label">
-                        <span>Linien-Dicke</span>
-                        <span class="control-value" id="thickValue">3</span>
-                    </div>
-                    <input type="range" id="thick" min="0" max="6" step="1" value="3">
-                </div>
 
                 <div class="checkbox-item">
                     <input type="checkbox" id="toggleGrid" checked>
                     <label for="toggleGrid">Gitter anzeigen</label>
                 </div>
 
-                <div class="checkbox-item">
-                    <input type="checkbox" id="toggleWavePattern">
-                    <label for="toggleWavePattern">Wellen-Muster</label>
-                </div>
 
                 <div class="checkbox-item">
                     <input type="checkbox" id="toggleRainbowMode">
@@ -869,33 +1007,298 @@
                 </div>
             </div>
 
+            <!-- Profile Management -->
+            <div class="control-group">
+                <h3>💾 Profil-Management</h3>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Profil-Name</span>
+                    </div>
+                    <input type="text" id="profileNameInput" class="control-select" placeholder="Profil-Name eingeben" value="Standard">
+                </div>
+                
+                <div class="control-item">
+                    <button id="saveProfileBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">
+                        💾 Profil speichern
+                    </button>
+                    <button id="loadProfileBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">
+                        📂 Profil laden
+                    </button>
+                    <button id="deleteProfileBtn" class="btn" style="width: 100%; background: linear-gradient(135deg, #FF6B6B, #FF4757);">
+                        🗑️ Profil löschen
+                    </button>
+                </div>
+                
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Gespeicherte Profile</span>
+                    </div>
+                    <select id="profileSelect" class="control-select">
+                        <option value="">Profil auswählen...</option>
+                    </select>
+                </div>
+            </div>
+
             <!-- Actions -->
             <div class="control-group">
                 <h3>⚡ Aktionen</h3>
                 
                 <button class="btn" id="reset">🔄 Alles zurücksetzen</button>
             </div>
+            </div>
+            
+            <!-- Machine Management Tab -->
+            <div id="machine-management" class="tab-panel">
+                <div class="control-header">
+                    <h2>🔧 Maschinen-Verwaltung</h2>
+                    <p>Maschinen hinzufügen, entfernen und verwalten</p>
+                </div>
+                
+                <!-- Machine List -->
+                <div class="control-group">
+                    <h3>📋 Maschinen-Liste</h3>
+                    <div id="machineListTab" class="machine-list-tab">
+                        <!-- Machines will be dynamically added here -->
+                    </div>
+                    
+                    <button id="addMachineBtnTab" class="btn btn-secondary" style="width: 100%; margin-top: 15px;">
+                        ➕ Neue Maschine hinzufügen
+                    </button>
+                </div>
+                
+                <!-- Machine Settings -->
+                <div class="control-group">
+                    <h3>⚙️ Maschinen-Einstellungen</h3>
+                    
+                    <div class="control-item">
+                        <div class="control-label">
+                            <span>Maschinen-Name</span>
+                        </div>
+                        <input type="text" id="machineNameInput" class="control-select" placeholder="Maschinen-Name eingeben">
+                        <button id="renameMachineBtn" class="btn btn-secondary" style="width: 100%; margin-top: 10px;">
+                            ✏️ Umbenennen
+                        </button>
+                    </div>
+                    
+                    <div class="control-item">
+                        <div class="control-label">
+                            <span>Aktive Maschine löschen</span>
+                        </div>
+                        <button id="deleteActiveMachineBtn" class="btn" style="width: 100%; background: linear-gradient(135deg, #FF6B6B, #FF4757);">
+                            🗑️ Aktive Maschine löschen
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script src="bundle.js"></script>
     <script>
-        // Radio button functionality for machine selection
-        const machineRadios = document.querySelectorAll('input[name="machine"]');
-        machineRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                if (radio.checked) {
-                    // Update color display and active machine info
-                    updateColorDisplay(radio.value);
-                    updateActiveMachineInfo(radio.value);
-                    
-                    // Notify the TypeScript application about machine change
+        // Panel collapse functionality
+        const rightPanel = document.getElementById('rightPanel');
+        const collapseLeftBtn = document.getElementById('collapseLeftBtn');
+        const collapseRightBtn = document.getElementById('collapseRightBtn');
+        let isLeftSide = false;
+        
+        // Initialize button visibility
+        function updateCollapseButtons() {
+            if (isLeftSide) {
+                collapseLeftBtn.style.display = 'none';
+                collapseRightBtn.style.display = 'flex';
+                collapseRightBtn.innerHTML = '▶';
+                collapseRightBtn.title = 'Menü nach rechts verschieben';
+            } else {
+                collapseLeftBtn.style.display = 'flex';
+                collapseRightBtn.style.display = 'none';
+                collapseLeftBtn.innerHTML = '◀';
+                collapseLeftBtn.title = 'Menü nach links verschieben';
+            }
+        }
+        
+        // Function to update canvas position and size
+        function updateCanvasLayout() {
+            const canvas = document.getElementById('canvas');
+            if (!canvas) return;
+            
+            const menuWidth = 400; // Width of the menu panel
+            
+            if (isLeftSide) {
+                // Menu is on the left, canvas starts after menu
+                canvas.style.left = menuWidth + 'px';
+                canvas.style.width = (window.innerWidth - menuWidth) + 'px';
+            } else {
+                // Menu is on the right, canvas takes full width minus menu
+                canvas.style.left = '0px';
+                canvas.style.width = (window.innerWidth - menuWidth) + 'px';
+            }
+            
+            // Update canvas internal size
+            canvas.width = parseInt(canvas.style.width);
+            canvas.height = window.innerHeight;
+            
+            // Notify multiMachine of resize
+            if (window.multiMachine && window.multiMachine.handleResize) {
+                window.multiMachine.handleResize();
+            }
+        }
+        
+        // Move panel to left side
+        if (collapseLeftBtn) {
+            collapseLeftBtn.addEventListener('click', () => {
+                rightPanel.classList.add('left-side');
+                isLeftSide = true;
+                updateCollapseButtons();
+                updateCanvasLayout();
+            });
+        }
+        
+        // Move panel to right side
+        if (collapseRightBtn) {
+            collapseRightBtn.addEventListener('click', () => {
+                rightPanel.classList.remove('left-side');
+                isLeftSide = false;
+                updateCollapseButtons();
+                updateCanvasLayout();
+            });
+        }
+        
+        // Initialize button visibility
+        updateCollapseButtons();
+        
+        // Tab functionality
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+        
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetTab = btn.getAttribute('data-tab');
+                
+                // Remove active class from all tabs and panels
+                tabBtns.forEach(b => b.classList.remove('active'));
+                tabPanels.forEach(p => p.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding panel
+                btn.classList.add('active');
+                document.getElementById(targetTab).classList.add('active');
+            });
+        });
+        
+        // Machine management functionality
+        const machineListTab = document.getElementById('machineListTab');
+        const addMachineBtnTab = document.getElementById('addMachineBtnTab');
+        
+        // Add machine button
+        if (addMachineBtnTab) {
+            addMachineBtnTab.addEventListener('click', () => {
                     if (window.multiMachine) {
-                        window.multiMachine.setActiveMachine(radio.value);
+                    const newMachine = window.multiMachine.createMachine();
+                    updateMachineListTab();
+                    window.multiMachine.setActiveMachine(newMachine.id);
+                    updateActiveMachineInfo();
+                    updateColorControls();
+                }
+            });
+        }
+        
+        // Rename machine button
+        const renameMachineBtn = document.getElementById('renameMachineBtn');
+        const machineNameInput = document.getElementById('machineNameInput');
+        if (renameMachineBtn && machineNameInput) {
+            renameMachineBtn.addEventListener('click', () => {
+                if (window.multiMachine) {
+                    const activeMachine = window.multiMachine.getActiveMachine();
+                    if (activeMachine && machineNameInput.value.trim()) {
+                        window.multiMachine.renameMachine(activeMachine.id, machineNameInput.value.trim());
+                        updateMachineListTab();
+                        updateActiveMachineInfo();
+                        machineNameInput.value = ''; // Clear input
                     }
                 }
             });
-        });
+        }
+        
+        // Delete machine button
+        const deleteActiveMachineBtn = document.getElementById('deleteActiveMachineBtn');
+        if (deleteActiveMachineBtn) {
+            deleteActiveMachineBtn.addEventListener('click', () => {
+                if (window.multiMachine) {
+                    const activeMachine = window.multiMachine.getActiveMachine();
+                    if (activeMachine && window.multiMachine.getMachineCount() > 1) {
+                        window.multiMachine.deleteMachine(activeMachine.id);
+                        updateMachineListTab();
+                        updateActiveMachineInfo();
+                        updateColorControls();
+                    } else {
+                        alert('Es muss mindestens eine Maschine vorhanden sein!');
+                    }
+                }
+            });
+        }
+        
+        // Color controls
+        const circlesColor = document.getElementById('circlesColor');
+        const amplitudesColor = document.getElementById('amplitudesColor');
+        const trailColor = document.getElementById('trailColor');
+        const pathColor = document.getElementById('pathColor');
+        const glowColor = document.getElementById('glowColor');
+        
+        if (circlesColor) {
+            circlesColor.addEventListener('change', () => {
+                if (window.multiMachine) {
+                    const activeMachine = window.multiMachine.getActiveMachine();
+                    if (activeMachine) {
+                        window.multiMachine.setMachineComponentColor(activeMachine.id, 'circles', circlesColor.value);
+                    }
+                }
+            });
+        }
+        
+        if (amplitudesColor) {
+            amplitudesColor.addEventListener('change', () => {
+                if (window.multiMachine) {
+                    const activeMachine = window.multiMachine.getActiveMachine();
+                    if (activeMachine) {
+                        window.multiMachine.setMachineComponentColor(activeMachine.id, 'amplitudes', amplitudesColor.value);
+                    }
+                }
+            });
+        }
+        
+        if (trailColor) {
+            trailColor.addEventListener('change', () => {
+                if (window.multiMachine) {
+                    const activeMachine = window.multiMachine.getActiveMachine();
+                    if (activeMachine) {
+                        window.multiMachine.setMachineComponentColor(activeMachine.id, 'trail', trailColor.value);
+                    }
+                }
+            });
+        }
+        
+        if (pathColor) {
+            pathColor.addEventListener('change', () => {
+                if (window.multiMachine) {
+                    const activeMachine = window.multiMachine.getActiveMachine();
+                    if (activeMachine) {
+                        window.multiMachine.setMachineComponentColor(activeMachine.id, 'path', pathColor.value);
+                    }
+                }
+            });
+        }
+        
+        if (glowColor) {
+            glowColor.addEventListener('change', () => {
+                if (window.multiMachine) {
+                    const activeMachine = window.multiMachine.getActiveMachine();
+                    if (activeMachine) {
+                        window.multiMachine.setMachineComponentColor(activeMachine.id, 'glow', glowColor.value);
+                    }
+                }
+            });
+        }
+        
 
         // Update all control values in real-time
         // Update all control values in real-time
@@ -999,45 +1402,6 @@
         }
 
         // Aktive Maschinen-Info aktualisieren
-        function updateActiveMachineInfo(machineId) {
-            const activeMachineName = document.getElementById('activeMachineName');
-            const activeMachineStatus = document.getElementById('activeMachineStatus');
-            const colorStatus = document.getElementById('colorStatus');
-            
-            if (activeMachineName) {
-                switch (machineId) {
-                    case 'A':
-                        activeMachineName.textContent = 'A - Neon Rot';
-                        if (activeMachineStatus) activeMachineStatus.textContent = 'A';
-                        if (colorStatus) colorStatus.textContent = 'Neon Rot';
-                        break;
-                    case 'B':
-                        activeMachineName.textContent = 'B - Neon Türkis';
-                        if (activeMachineStatus) activeMachineStatus.textContent = 'B';
-                        if (colorStatus) colorStatus.textContent = 'Neon Türkis';
-                        break;
-                    case 'C':
-                        activeMachineName.textContent = 'C - Neon Blau';
-                        if (activeMachineStatus) activeMachineStatus.textContent = 'C';
-                        if (colorStatus) colorStatus.textContent = 'Neon Blau';
-                        break;
-                    case 'D':
-                        activeMachineName.textContent = 'D - Neon Gelb';
-                        if (activeMachineStatus) activeMachineStatus.textContent = 'D';
-                        if (colorStatus) colorStatus.textContent = 'Neon Gelb';
-                        break;
-                    case 'E':
-                        activeMachineName.textContent = 'E - Neon Lila';
-                        if (activeMachineStatus) activeMachineStatus.textContent = 'E';
-                        if (colorStatus) colorStatus.textContent = 'Neon Lila';
-                        break;
-                    default:
-                        activeMachineName.textContent = 'A - Neon Rot';
-                        if (activeMachineStatus) activeMachineStatus.textContent = 'A';
-                        if (colorStatus) colorStatus.textContent = 'Neon Rot';
-                }
-            }
-        }
 
         // Maschinenstatus aktualisieren
         function updateMachineStatus(points, fourierComponents) {
@@ -1060,9 +1424,407 @@
             }
         }, 500);
 
-        // Initiale Farbanzeige setzen
-        updateColorDisplay('A');
-        updateActiveMachineInfo('A');
+        // Helper functions for machine management
+        
+        function updateMachineListTab() {
+            if (!window.multiMachine || !machineListTab) return;
+            
+            const machines = window.multiMachine.getAllMachines();
+            const activeMachineId = window.multiMachine.getActiveMachineId();
+            
+            machineListTab.innerHTML = '';
+            
+            machines.forEach(machine => {
+                const machineDiv = document.createElement('div');
+                machineDiv.className = 'machine-item-tab';
+                machineDiv.innerHTML = `
+                    <div class="machine-info ${machine.id === activeMachineId ? 'active' : ''}">
+                        <span class="machine-name">${machine.name}</span>
+                        <span class="machine-id">${machine.id}</span>
+                        <button class="select-machine-btn" data-machine-id="${machine.id}">
+                            ${machine.id === activeMachineId ? '✓ Aktiv' : 'Aktivieren'}
+                        </button>
+                    </div>
+                `;
+                
+                // Add click handler for machine selection
+                const selectBtn = machineDiv.querySelector('.select-machine-btn');
+                selectBtn.addEventListener('click', () => {
+                    window.multiMachine.setActiveMachine(machine.id);
+                    updateActiveMachineInfo();
+                    updateColorControls();
+                    updateMachineListTab();
+                });
+                
+                machineListTab.appendChild(machineDiv);
+            });
+        }
+        
+        function updateActiveMachineInfo() {
+            if (!window.multiMachine) return;
+            
+            const activeMachine = window.multiMachine.getActiveMachine();
+            const activeMachineName = document.getElementById('activeMachineName');
+            const activeMachineStatus = document.getElementById('activeMachineStatus');
+            const pointsStatus = document.getElementById('pointsStatus');
+            const fourierStatus = document.getElementById('fourierStatus');
+            
+            if (activeMachine) {
+                if (activeMachineName) activeMachineName.textContent = activeMachine.name;
+                if (activeMachineStatus) activeMachineStatus.textContent = activeMachine.id;
+                
+                const points = activeMachine.getCurrentDrawing().length;
+                const fourierComponents = activeMachine.getFourierCoefficients().length;
+                
+                if (pointsStatus) pointsStatus.textContent = points;
+                if (fourierStatus) fourierStatus.textContent = fourierComponents + ' Komp.';
+            }
+        }
+        
+        function updateColorControls() {
+            if (!window.multiMachine) return;
+            
+            const activeMachine = window.multiMachine.getActiveMachine();
+            if (!activeMachine) return;
+            
+            const colors = window.multiMachine.getMachineComponentColors(activeMachine.id);
+            if (!colors) return;
+            
+            const circlesColor = document.getElementById('circlesColor');
+            const amplitudesColor = document.getElementById('amplitudesColor');
+            const trailColor = document.getElementById('trailColor');
+            const pathColor = document.getElementById('pathColor');
+            const glowColor = document.getElementById('glowColor');
+            
+            if (circlesColor) circlesColor.value = colors.circles;
+            if (amplitudesColor) amplitudesColor.value = colors.amplitudes;
+            if (trailColor) trailColor.value = colors.trail;
+            if (pathColor) pathColor.value = colors.path;
+            if (glowColor) glowColor.value = colors.glow;
+        }
+        
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            updateCanvasLayout();
+        });
+        
+        // Profile Management System
+        class ProfileManager {
+            constructor() {
+                this.currentProfile = 'Standard';
+                this.profiles = this.loadProfiles();
+                this.initEventHandlers();
+                this.updateProfileSelect();
+                this.loadLastProfile();
+            }
+            
+            initEventHandlers() {
+                const saveBtn = document.getElementById('saveProfileBtn');
+                const loadBtn = document.getElementById('loadProfileBtn');
+                const deleteBtn = document.getElementById('deleteProfileBtn');
+                const profileSelect = document.getElementById('profileSelect');
+                const profileNameInput = document.getElementById('profileNameInput');
+                
+                if (saveBtn) {
+                    saveBtn.addEventListener('click', () => this.saveCurrentProfile());
+                }
+                
+                if (loadBtn) {
+                    loadBtn.addEventListener('click', () => this.loadSelectedProfile());
+                }
+                
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', () => this.deleteSelectedProfile());
+                }
+                
+                if (profileSelect) {
+                    profileSelect.addEventListener('change', () => {
+                        const selectedProfile = profileSelect.value;
+                        if (selectedProfile) {
+                            profileNameInput.value = selectedProfile;
+                        }
+                    });
+                }
+            }
+            
+            saveCurrentProfile() {
+                if (!window.multiMachine) return;
+                
+                const profileName = document.getElementById('profileNameInput').value.trim();
+                if (!profileName) {
+                    alert('Bitte geben Sie einen Profil-Namen ein!');
+                    return;
+                }
+                
+                const profile = {
+                    name: profileName,
+                    timestamp: new Date().toISOString(),
+                    machines: window.multiMachine.getAllMachines().map(machine => ({
+                        id: machine.id,
+                        name: machine.name,
+                        componentColors: machine.getComponentColors(),
+                        frequenciesAmount: machine.frequenciesAmount,
+                        animationSpeed: machine.animationSpeed,
+                        fourierAlpha: machine.fourierAlpha,
+                        showCircles: machine.showCircles,
+                        showAmplitudes: machine.showAmplitudes,
+                        showTrail: machine.showTrail,
+                        trailLength: machine.trailLength,
+                        trailBrightness: machine.trailBrightness,
+                        samples: machine.samples,
+                        glowIntensity: machine.glowIntensity,
+                        drawing: machine.getCurrentDrawing()
+                    })),
+                    activeMachineId: window.multiMachine.getActiveMachineId(),
+                    gridSettings: {
+                        showGrid: window.multiMachine.grid.showGrid,
+                        cellSize: window.multiMachine.grid.cellSize,
+                        rainbowMode: window.multiMachine.grid.rainbowMode,
+                        particleSystem: window.multiMachine.grid.particleSystem,
+                        showFrequencySpectrum: window.multiMachine.showFrequencySpectrum,
+                        showPhaseDiagram: window.multiMachine.showPhaseDiagram
+                    }
+                };
+                
+                this.profiles[profileName] = profile;
+                this.saveProfiles();
+                this.updateProfileSelect();
+                this.currentProfile = profileName;
+                this.saveLastProfile();
+                
+                alert(`Profil "${profileName}" wurde gespeichert!`);
+            }
+            
+            loadProfile(profileName) {
+                if (!this.profiles[profileName] || !window.multiMachine) return false;
+                
+                const profile = this.profiles[profileName];
+                
+                // Clear existing machines
+                window.multiMachine.clearAllMachines();
+                
+                // Restore machines
+                profile.machines.forEach(machineData => {
+                    const machine = window.multiMachine.createMachine();
+                    machine.id = machineData.id;
+                    machine.name = machineData.name;
+                    machine.componentColors = machineData.componentColors;
+                    machine.frequenciesAmount = machineData.frequenciesAmount;
+                    machine.animationSpeed = machineData.animationSpeed;
+                    machine.fourierAlpha = machineData.fourierAlpha;
+                    machine.showCircles = machineData.showCircles;
+                    machine.showAmplitudes = machineData.showAmplitudes;
+                    machine.showTrail = machineData.showTrail;
+                    machine.trailLength = machineData.trailLength;
+                    machine.trailBrightness = machineData.trailBrightness;
+                    machine.samples = machineData.samples;
+                    machine.glowIntensity = machineData.glowIntensity;
+                    
+                    // Restore drawing
+                    if (machineData.drawing && machineData.drawing.length > 0) {
+                        machine.drawing = machineData.drawing.map(p => ({ x: p.x, y: p.y }));
+                        machine.calculateFourier();
+                    }
+                });
+                
+                // Set active machine
+                if (profile.activeMachineId) {
+                    window.multiMachine.setActiveMachine(profile.activeMachineId);
+                }
+                
+                // Restore grid settings
+                if (profile.gridSettings) {
+                    window.multiMachine.setGridProperty('showGrid', profile.gridSettings.showGrid);
+                    window.multiMachine.setGridProperty('cellSize', profile.gridSettings.cellSize);
+                    window.multiMachine.setGridProperty('rainbowMode', profile.gridSettings.rainbowMode);
+                    window.multiMachine.setGridProperty('particleSystem', profile.gridSettings.particleSystem);
+                    window.multiMachine.setGridProperty('showFrequencySpectrum', profile.gridSettings.showFrequencySpectrum);
+                    window.multiMachine.setGridProperty('showPhaseDiagram', profile.gridSettings.showPhaseDiagram);
+                }
+                
+                // Update UI
+                updateMachineListTab();
+                updateActiveMachineInfo();
+                updateColorControls();
+                updateControlValues();
+                
+                this.currentProfile = profileName;
+                this.saveLastProfile();
+                
+                return true;
+            }
+            
+            loadSelectedProfile() {
+                const profileSelect = document.getElementById('profileSelect');
+                const profileName = profileSelect.value;
+                
+                if (!profileName) {
+                    alert('Bitte wählen Sie ein Profil aus!');
+                    return;
+                }
+                
+                if (this.loadProfile(profileName)) {
+                    document.getElementById('profileNameInput').value = profileName;
+                    alert(`Profil "${profileName}" wurde geladen!`);
+                }
+            }
+            
+            deleteSelectedProfile() {
+                const profileSelect = document.getElementById('profileSelect');
+                const profileName = profileSelect.value;
+                
+                if (!profileName) {
+                    alert('Bitte wählen Sie ein Profil aus!');
+                    return;
+                }
+                
+                if (confirm(`Möchten Sie das Profil "${profileName}" wirklich löschen?`)) {
+                    delete this.profiles[profileName];
+                    this.saveProfiles();
+                    this.updateProfileSelect();
+                    document.getElementById('profileNameInput').value = 'Standard';
+                    
+                    if (this.currentProfile === profileName) {
+                        this.currentProfile = 'Standard';
+                        this.saveLastProfile();
+                    }
+                    
+                    alert(`Profil "${profileName}" wurde gelöscht!`);
+                }
+            }
+            
+            updateProfileSelect() {
+                const profileSelect = document.getElementById('profileSelect');
+                if (!profileSelect) return;
+                
+                profileSelect.innerHTML = '<option value="">Profil auswählen...</option>';
+                
+                Object.keys(this.profiles).forEach(profileName => {
+                    const option = document.createElement('option');
+                    option.value = profileName;
+                    option.textContent = `${profileName} (${new Date(this.profiles[profileName].timestamp).toLocaleDateString()})`;
+                    profileSelect.appendChild(option);
+                });
+            }
+            
+            loadProfiles() {
+                try {
+                    const saved = localStorage.getItem('fourierProfiles');
+                    return saved ? JSON.parse(saved) : {};
+                } catch (e) {
+                    console.error('Error loading profiles:', e);
+                    return {};
+                }
+            }
+            
+            saveProfiles() {
+                try {
+                    localStorage.setItem('fourierProfiles', JSON.stringify(this.profiles));
+                } catch (e) {
+                    console.error('Error saving profiles:', e);
+                }
+            }
+            
+            saveLastProfile() {
+                try {
+                    localStorage.setItem('fourierLastProfile', this.currentProfile);
+                } catch (e) {
+                    console.error('Error saving last profile:', e);
+                }
+            }
+            
+            loadLastProfile() {
+                try {
+                    const lastProfile = localStorage.getItem('fourierLastProfile');
+                    if (lastProfile && this.profiles[lastProfile]) {
+                        setTimeout(() => {
+                            this.loadProfile(lastProfile);
+                            document.getElementById('profileNameInput').value = lastProfile;
+                        }, 500); // Delay to ensure multiMachine is ready
+                    }
+                } catch (e) {
+                    console.error('Error loading last profile:', e);
+                }
+            }
+        }
+        
+        // Initialize Profile Manager
+        const profileManager = new ProfileManager();
+        
+        // Helper function to update all control values
+        function updateControlValues() {
+            if (!window.multiMachine) return;
+            
+            const activeMachine = window.multiMachine.getActiveMachine();
+            if (!activeMachine) return;
+            
+            // Update sliders
+            const freqSlider = document.getElementById('freq');
+            const speedSlider = document.getElementById('speed');
+            const alphaSlider = document.getElementById('alpha');
+            const trailLengthSlider = document.getElementById('trailLength');
+            const trailBrightnessSlider = document.getElementById('trailBrightness');
+            const glowIntensitySlider = document.getElementById('glowIntensity');
+            const cellSizeSlider = document.getElementById('cellSize');
+            
+            if (freqSlider) freqSlider.value = activeMachine.frequenciesAmount;
+            if (speedSlider) speedSlider.value = activeMachine.animationSpeed;
+            if (alphaSlider) alphaSlider.value = activeMachine.fourierAlpha;
+            if (trailLengthSlider) trailLengthSlider.value = activeMachine.trailLength;
+            if (trailBrightnessSlider) trailBrightnessSlider.value = activeMachine.trailBrightness;
+            if (glowIntensitySlider) glowIntensitySlider.value = activeMachine.glowIntensity;
+            if (cellSizeSlider) cellSizeSlider.value = window.multiMachine.grid.cellSize;
+            
+            // Update checkboxes
+            const toggleCircles = document.getElementById('toggleCircles');
+            const toggleLines = document.getElementById('toggleLines');
+            const toggleTrail = document.getElementById('toggleTrail');
+            const toggleFrequencySpectrum = document.getElementById('toggleFrequencySpectrum');
+            const togglePhaseDiagram = document.getElementById('togglePhaseDiagram');
+            const toggleGrid = document.getElementById('toggleGrid');
+            const toggleRainbow = document.getElementById('toggleRainbow');
+            const toggleParticles = document.getElementById('toggleParticles');
+            
+            if (toggleCircles) toggleCircles.checked = activeMachine.showCircles;
+            if (toggleLines) toggleLines.checked = activeMachine.showAmplitudes;
+            if (toggleTrail) toggleTrail.checked = activeMachine.showTrail;
+            if (toggleFrequencySpectrum) toggleFrequencySpectrum.checked = window.multiMachine.showFrequencySpectrum;
+            if (togglePhaseDiagram) togglePhaseDiagram.checked = window.multiMachine.showPhaseDiagram;
+            if (toggleGrid) toggleGrid.checked = window.multiMachine.grid.showGrid;
+            if (toggleRainbow) toggleRainbow.checked = window.multiMachine.grid.rainbowMode;
+            if (toggleParticles) toggleParticles.checked = window.multiMachine.grid.particleSystem;
+            
+            // Update color selects
+            const colors = activeMachine.getComponentColors();
+            const circlesColor = document.getElementById('circlesColor');
+            const amplitudesColor = document.getElementById('amplitudesColor');
+            const trailColor = document.getElementById('trailColor');
+            const pathColor = document.getElementById('pathColor');
+            const glowColor = document.getElementById('glowColor');
+            
+            if (circlesColor) circlesColor.value = colors.circles;
+            if (amplitudesColor) amplitudesColor.value = colors.amplitudes;
+            if (trailColor) trailColor.value = colors.trail;
+            if (pathColor) pathColor.value = colors.path;
+            if (glowColor) glowColor.value = colors.glow;
+            
+            // Update control value displays
+            updateControlValue('freqValue', activeMachine.frequenciesAmount);
+            updateControlValue('speedValue', activeMachine.animationSpeed);
+            updateControlValue('alphaValue', activeMachine.fourierAlpha);
+            updateControlValue('trailLengthValue', activeMachine.trailLength);
+            updateControlValue('trailBrightnessValue', activeMachine.trailBrightness);
+            updateControlValue('glowIntensityValue', activeMachine.glowIntensity);
+            updateControlValue('cellValue', window.multiMachine.grid.cellSize);
+        }
+
+        // Initialize
+        setTimeout(() => {
+            updateMachineListTab();
+            updateActiveMachineInfo();
+            updateColorControls();
+            updateCanvasLayout(); // Initial canvas layout
+        }, 100);
     </script>
 </body>
 </html>

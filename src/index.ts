@@ -1,4 +1,4 @@
-import { MultiMachine } from './MultiMachine';
+import { GenericMultiMachine } from './GenericMultiMachine';
 
 window.onload = () => {
   // Canvas und Context Setup ZUERST
@@ -14,18 +14,16 @@ window.onload = () => {
     return;
   }
   
-  // Canvas-Größe setzen
-  canvas.width = window.innerWidth;
+  // Canvas-Größe setzen - auf den sichtbaren Bereich beschränken
+  const menuWidth = 300; // Width of the right menu
+  canvas.width = window.innerWidth - menuWidth;
   canvas.height = window.innerHeight;
   
-  // Jetzt erst MultiMachine erstellen (nach Canvas-Setup)
-  const multiMachine = new MultiMachine();
+  // Jetzt erst GenericMultiMachine erstellen (nach Canvas-Setup)
+  const multiMachine = new GenericMultiMachine();
   
   // Setze MultiMachine global verfügbar für HTML
   (window as any).multiMachine = multiMachine;
-  
-  // Setze erste Maschine als aktiv
-  multiMachine.setActiveMachine('A');
 
   // wire controls
   const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
@@ -44,16 +42,13 @@ window.onload = () => {
   const reset = document.getElementById('reset') as HTMLButtonElement;
 
   // Neue Grid-Controls
-  const toggleWavePattern = $('toggleWavePattern') as HTMLInputElement;
   const toggleRainbowMode = $('toggleRainbowMode') as HTMLInputElement;
   const toggleParticleSystem = $('toggleParticleSystem') as HTMLInputElement;
 
   // Additional controls that were missing
   const cell = $('cell');
-  const thick = $('thick');
   const samples = $('samples');
   const toggleCharTrail = $('toggleCharTrail') as HTMLInputElement;
-  const toggleOriginalLine = $('toggleOriginalLine') as HTMLInputElement;
   const characterTrailLength = $('characterTrailLength');
   const characterTrailIntensity = $('characterTrailIntensity');
   const imageThreshold = $('imageThreshold');
@@ -74,6 +69,9 @@ window.onload = () => {
       element.textContent = String(value);
     }
   };
+  
+  // Setze updateControlValue global verfügbar für HTML
+  (window as any).updateControlValue = updateControlValue;
 
   // Einstellungen für die aktive Maschine
   if (freq) freq.oninput = () => { 
@@ -126,9 +124,6 @@ window.onload = () => {
   };
   
   // Neue Grid-Controls
-  if (toggleWavePattern) toggleWavePattern.oninput = () => { 
-    multiMachine.setGridProperty('wavePattern', toggleWavePattern.checked);
-  };
   
   if (toggleRainbowMode) toggleRainbowMode.oninput = () => { 
     multiMachine.setGridProperty('rainbowMode', toggleRainbowMode.checked);
@@ -156,11 +151,6 @@ window.onload = () => {
     multiMachine.setGridProperty('cell', cellValue);
   };
 
-  if (thick) thick.oninput = () => {
-    // This could be used for line thickness
-    updateControlValue('thickValue', thick.value);
-    multiMachine.setGridProperty('thick', parseInt(thick.value, 10));
-  };
 
   if (samples) samples.oninput = () => {
     // This could be used for Fourier calculation precision
@@ -175,11 +165,6 @@ window.onload = () => {
     multiMachine.setGridProperty('showCharTrail', toggleCharTrail.checked);
   };
 
-  if (toggleOriginalLine) toggleOriginalLine.oninput = () => {
-    // This could be used to toggle original line rendering
-    console.log('Original line toggled:', toggleOriginalLine.checked);
-    multiMachine.setGridProperty('showOriginalLine', toggleOriginalLine.checked);
-  };
 
   if (characterTrailLength) characterTrailLength.oninput = () => {
     updateControlValue('characterTrailLengthValue', characterTrailLength.value);
@@ -300,7 +285,8 @@ window.onload = () => {
 
   // Resize handling
   const handleResize = () => {
-    canvas.width = window.innerWidth;
+    const menuWidth = 300; // Width of the right menu
+    canvas.width = window.innerWidth - menuWidth;
     canvas.height = window.innerHeight;
     multiMachine.handleResize();
   };

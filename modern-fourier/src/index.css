@@ -1,0 +1,64 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+  color: #ffffff;
+  overflow: hidden;
+  height: 100vh;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Leva Controls Styling */
+.leva-c_leva__root {
+  background: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(0, 255, 136, 0.3) !important;
+  border-radius: 8px !important;
+}
+
+.leva-c_leva__root * {
+  color: #00ff88 !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 136, 0.6);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 136, 0.8);
+}
+
+/* Glowing text effect */
+.glow-text {
+  text-shadow: 0 0 10px currentColor;
+}
+
+/* Loading animation */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loading {
+  animation: pulse 2s infinite;
+}

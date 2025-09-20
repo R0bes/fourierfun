@@ -15,7 +15,6 @@ export class Grid {
     private gridDimension: Point;
     private cells: GridCell[][];
     private animationClock: number = 0;
-    private wavePattern: boolean = false;
     private rainbowMode: boolean = false;
     private particleSystem: boolean = false;
     
@@ -66,11 +65,6 @@ export class Grid {
             for (let y = 0; y < this.gridDimension.y; y++) {
                 const cell = this.cells[x][y];
                 
-                // Wellen-Animation
-                if (this.wavePattern) {
-                    const distance = Math.sqrt(x * x + y * y);
-                    cell.animation = this.animationClock * 0.5 + distance * 0.1;
-                }
                 
                 // Heat-Fade
                 if (cell.heat > 0) {
@@ -129,7 +123,7 @@ export class Grid {
             for (let y = 0; y < this.gridDimension.y; y++) {
                 const cell = this.cells[x][y];
                 
-                if (cell.heat > 0 || this.wavePattern || this.rainbowMode) {
+                if (cell.heat > 0 || this.rainbowMode) {
                     const pixelX = x * this.cellSize + this.cellSize / 2;
                     const pixelY = y * this.cellSize + this.cellSize / 2;
                     
@@ -149,18 +143,7 @@ export class Grid {
                     context.font = `bold ${this.cellSize * 0.6}px Arial`;
                     context.textAlign = 'center';
                     context.textBaseline = 'middle';
-                    
-                    // Animation basierend auf Wellen-Muster
-                    if (this.wavePattern) {
-                        const scale = 1 + Math.sin(cell.animation) * 0.2;
-                        context.save();
-                        context.translate(pixelX, pixelY);
-                        context.scale(scale, scale);
-                        context.fillText(cell.char, 0, 0);
-                        context.restore();
-                    } else {
-                        context.fillText(cell.char, pixelX, pixelY);
-                    }
+                    context.fillText(cell.char, pixelX, pixelY);
                 }
             }
         }
@@ -192,9 +175,6 @@ export class Grid {
             case 'showGrid':
                 this.showGrid = value;
                 break;
-            case 'wavePattern':
-                this.wavePattern = value;
-                break;
             case 'rainbowMode':
                 this.rainbowMode = value;
                 break;
@@ -210,5 +190,24 @@ export class Grid {
             Math.floor(height / this.cellSize)
         );
         this.initializeCells();
+    }
+    
+    // Setter methods for grid properties
+    public setShowGrid(show: boolean): void {
+        this.showGrid = show;
+    }
+    
+    
+    public setRainbowMode(enabled: boolean): void {
+        this.rainbowMode = enabled;
+    }
+    
+    public setParticleSystem(enabled: boolean): void {
+        this.particleSystem = enabled;
+    }
+    
+    public setCellSize(size: number): void {
+        this.cellSize = size;
+        this.resize(this.gridDimension.x * this.cellSize, this.gridDimension.y * this.cellSize);
     }
 }
