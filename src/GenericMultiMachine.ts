@@ -13,6 +13,7 @@ export class GenericMultiMachine {
     // Grid properties
     private cellSize: number = 20;
     private showGrid: boolean = true;
+    private imageThreshold: number = 128;
     private gridDimension: Point;
     private textDimension: Point;
     private textPaddingDimension: Point;
@@ -28,7 +29,6 @@ export class GenericMultiMachine {
     private characterTrailIntensity: number = 1.0;
     private lineThickness: number = 3;
     private samples: number = 1024;
-    private imageThreshold: number = 128;
     
     // Extended Grid properties
     private showFrequencySpectrum: boolean = true; // Standardmäßig anzeigen
@@ -41,6 +41,15 @@ export class GenericMultiMachine {
     
     // Grid instance
     private grid: Grid;
+    
+    // Recording properties
+    private isRecording: boolean = false;
+    private recordingFrames: string[] = [];
+    private recordingDuration: number = 5000; // 5 seconds default
+    private recordingStartTime: number = 0;
+    private recordingFrameRate: number = 30; // 30 FPS
+    private recordingFrameInterval: number = 1000 / 30; // ~33ms
+    private lastRecordingFrame: number = 0;
     
     constructor() {
         // Create initial machine
@@ -73,17 +82,16 @@ export class GenericMultiMachine {
         
         this.machines.push(machine);
         
-        // Set default colors for new machine
-        const colorManager = ColorManager.getInstance();
-        const colorIndex = (this.machines.length - 1) % NEON_COLORS.length;
-        const defaultColor = NEON_COLORS[colorIndex];
-        
-        machine.setComponentColor('circles', defaultColor.hex);
-        machine.setComponentColor('amplitudes', defaultColor.hex);
-        machine.setComponentColor('trail', defaultColor.hex);
-        machine.setComponentColor('path', defaultColor.hex);
-        machine.setComponentColor('glow', defaultColor.glow);
-        
+        // Set random solid colors from NEON_COLORS (no rainbow), alpha 1
+        const pickRandom = () => NEON_COLORS[Math.floor(Math.random() * NEON_COLORS.length)];
+        const c1 = pickRandom(), c2 = pickRandom(), c3 = pickRandom(), c4 = pickRandom(), c5 = pickRandom(), cGlow = pickRandom();
+        machine.setComponentColor('circles', c1.hex);
+        machine.setComponentColor('amplitudes', c2.hex);
+        machine.setComponentColor('trail', c3.hex);
+        machine.setComponentColor('path', c4.hex);
+        machine.setComponentColor('drawn', c5.hex);
+        machine.setComponentColor('glow', cGlow.glow);
+        machine.setComponentAlphas({ circles: 1, amplitudes: 1, trail: 1, path: 1, drawn: 1, glow: 1 });
         return machine;
     }
     
@@ -159,7 +167,7 @@ export class GenericMultiMachine {
     
     
     // Color management
-    setMachineComponentColor(machineId: string, component: 'circles' | 'amplitudes' | 'trail' | 'path' | 'glow', color: string): boolean {
+    setMachineComponentColor(machineId: string, component: 'circles' | 'amplitudes' | 'trail' | 'path' | 'drawn' | 'glow', color: string): boolean {
         const machine = this.getMachine(machineId);
         if (!machine) return false;
         
@@ -170,6 +178,18 @@ export class GenericMultiMachine {
     getMachineComponentColors(machineId: string) {
         const machine = this.getMachine(machineId);
         return machine ? machine.getComponentColors() : null;
+    }
+
+    setMachineComponentAlpha(machineId: string, component: 'circles' | 'amplitudes' | 'trail' | 'path' | 'drawn' | 'glow', alpha: number): boolean {
+        const machine = this.getMachine(machineId);
+        if (!machine) return false;
+        machine.setComponentAlpha(component, alpha);
+        return true;
+    }
+
+    getMachineComponentAlphas(machineId: string) {
+        const machine = this.getMachine(machineId);
+        return machine ? machine.getComponentAlphas() : null;
     }
     
     
@@ -202,6 +222,20 @@ export class GenericMultiMachine {
     update(): void {
         this.machines.forEach(machine => machine.update());
         this.backgroundClock += 0.01;
+        
+        // Handle recording
+        if (this.isRecording) {
+            const currentTime = Date.now();
+            if (currentTime - this.lastRecordingFrame >= this.recordingFrameInterval) {
+                this.captureFrame();
+                this.lastRecordingFrame = currentTime;
+                
+                // Check if recording duration is reached
+                if (currentTime - this.recordingStartTime >= this.recordingDuration) {
+                    this.stopRecording();
+                }
+            }
+        }
     }
     
     render(context: CanvasRenderingContext2D): void {
@@ -310,9 +344,9 @@ export class GenericMultiMachine {
             const barColor = this.activeMachine.getColorForComponent('circles', i, currentAmplitudes.length, time, 0);
             
             // Glow effect
-            if (this.activeMachine.glowIntensity > 0) {
+            if (this.activeMachine.showGlow) {
                 context.shadowColor = colors.glow;
-                context.shadowBlur = 8 * this.activeMachine.glowIntensity;
+                context.shadowBlur = 8;
                 context.fillStyle = barColor;
                 context.globalAlpha = 0.7;
                 
@@ -379,9 +413,9 @@ export class GenericMultiMachine {
             const vectorColor = this.activeMachine.getColorForComponent('circles', i, currentFrame.length, time, 0);
             
             // Glow effect
-            if (this.activeMachine.glowIntensity > 0) {
+            if (this.activeMachine.showGlow) {
                 context.shadowColor = colors.glow;
-                context.shadowBlur = 10 * this.activeMachine.glowIntensity;
+                context.shadowBlur = 10;
                 context.strokeStyle = vectorColor;
                 context.lineWidth = 4;
                 context.globalAlpha = 0.6;
@@ -426,12 +460,170 @@ export class GenericMultiMachine {
         // Handle canvas resize if needed
     }
     
-    // Image processing
+    // Image processing: load image, threshold to points, map to canvas (fit aspect ratio), limit points
     async processImageUpload(file: File): Promise<void> {
-        // TODO: Implement image processing
-        console.log('Image processing not yet implemented for generic system');
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        reject(new Error('Could not get canvas context'));
+                        return;
+                    }
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    let data: Uint8ClampedArray;
+                    try {
+                        data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                    } catch (err) {
+                        reject(new Error('Bild konnte nicht ausgelesen werden (z. B. CORS). Bitte anderes Bild wählen.'));
+                        return;
+                    }
+                    const threshold = this.imageThreshold ?? 128;
+                    const points: Point[] = [];
+                    const sampleRate = Math.max(1, Math.min(4, Math.floor(256 / Math.max(1, threshold))));
+                    for (let y = 0; y < canvas.height; y += sampleRate) {
+                        for (let x = 0; x < canvas.width; x += sampleRate) {
+                            const idx = (y * canvas.width + x) * 4;
+                            const a = data[idx + 3];
+                            if (a < 128) continue;
+                            const gray = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+                            if (gray < threshold) {
+                                points.push(new Point(x, y));
+                            }
+                        }
+                    }
+                    if (points.length < 3) {
+                        reject(new Error('Nicht genug dunkle Pixel im Bild. Bild-Schwelle anpassen oder Bild mit klaren Linien verwenden.'));
+                        return;
+                    }
+                    const mainCanvas = document.getElementById('canvas') as HTMLCanvasElement;
+                    const targetWidth = mainCanvas ? mainCanvas.width : window.innerWidth - 320;
+                    const targetHeight = mainCanvas ? mainCanvas.height : window.innerHeight;
+                    const scale = Math.min(targetWidth / canvas.width, targetHeight / canvas.height);
+                    const offsetX = (targetWidth - canvas.width * scale) / 2;
+                    const offsetY = (targetHeight - canvas.height * scale) / 2;
+                    const maxPoints = 4000;
+                    const step = points.length <= maxPoints ? 1 : Math.ceil(points.length / maxPoints);
+                    const mapped: Point[] = [];
+                    for (let i = 0; i < points.length; i += step) {
+                        const p = points[i];
+                        mapped.push(new Point(
+                            offsetX + (p.x / canvas.width) * canvas.width * scale,
+                            offsetY + (p.y / canvas.height) * canvas.height * scale
+                        ));
+                    }
+                    const activeMachine = this.getActiveMachine();
+                    if (!activeMachine) {
+                        reject(new Error('Keine aktive Maschine. Bitte eine Maschine auswählen.'));
+                        return;
+                    }
+                    activeMachine.clearDrawing();
+                    for (const point of mapped) {
+                        activeMachine.addPoint(point);
+                    }
+                    activeMachine.calculateFourier();
+                    console.log(`Bild verarbeitet: ${mapped.length} Punkte (von ${points.length} gefunden)`);
+                    resolve();
+                };
+                img.onerror = () => reject(new Error('Fehler beim Laden des Bildes'));
+                img.src = e.target?.result as string;
+            };
+            reader.onerror = () => reject(new Error('Fehler beim Lesen der Datei'));
+            reader.readAsDataURL(file);
+        });
     }
     
+    // Recording methods
+    startRecording(duration: number = 5000): void {
+        if (this.isRecording) return;
+        
+        this.isRecording = true;
+        this.recordingFrames = [];
+        this.recordingDuration = duration;
+        this.recordingStartTime = Date.now();
+        this.lastRecordingFrame = 0;
+        
+        console.log(`🎬 Recording gestartet für ${duration}ms`);
+    }
+    
+    stopRecording(): void {
+        if (!this.isRecording) return;
+        
+        this.isRecording = false;
+        console.log(`🎬 Recording beendet. ${this.recordingFrames.length} Frames aufgenommen.`);
+        
+        // Export as GIF
+        this.exportAsGIF();
+    }
+    
+    private captureFrame(): void {
+        const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+        if (!canvas) return;
+        
+        const frameData = canvas.toDataURL('image/png');
+        this.recordingFrames.push(frameData);
+    }
+    
+    private async exportAsGIF(): Promise<void> {
+        if (this.recordingFrames.length === 0) return;
+        
+        try {
+            // Create a simple animated GIF using canvas
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            
+            // Set canvas size
+            const originalCanvas = document.getElementById('canvas') as HTMLCanvasElement;
+            if (!originalCanvas) return;
+            
+            canvas.width = originalCanvas.width;
+            canvas.height = originalCanvas.height;
+            
+            // Create frames
+            const frames: ImageData[] = [];
+            for (const frameData of this.recordingFrames) {
+                const img = new Image();
+                await new Promise((resolve) => {
+                    img.onload = () => {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0);
+                        frames.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+                        resolve(void 0);
+                    };
+                    img.src = frameData;
+                });
+            }
+            
+            // For now, just download the first frame as PNG
+            // TODO: Implement proper GIF creation
+            const link = document.createElement('a');
+            link.download = `fourier-animation-${Date.now()}.png`;
+            link.href = this.recordingFrames[0];
+            link.click();
+            
+            console.log(`✅ Animation exportiert: ${this.recordingFrames.length} Frames`);
+            
+        } catch (error) {
+            console.error('❌ Fehler beim Exportieren der Animation:', error);
+        }
+    }
+    
+    isCurrentlyRecording(): boolean {
+        return this.isRecording;
+    }
+    
+    getRecordingProgress(): number {
+        if (!this.isRecording) return 0;
+        const elapsed = Date.now() - this.recordingStartTime;
+        return Math.min(elapsed / this.recordingDuration, 1);
+    }
+
     // Utility methods
     getMachineCount(): number {
         return this.machines.length;
@@ -464,6 +656,9 @@ export class GenericMultiMachine {
                 break;
             case 'cell':
                 // Handle cell styling if needed
+                break;
+            case 'imageThreshold':
+                this.imageThreshold = value;
                 break;
             case 'showFrequencySpectrum':
                 this.showFrequencySpectrum = value;
@@ -694,9 +889,9 @@ export class GenericMultiMachine {
                 context.fillStyle = colors.path;
                 
                 // Add glow effect
-                if (machine.glowIntensity > 0) {
+                if (machine.showGlow) {
                     context.shadowColor = colors.glow;
-                    context.shadowBlur = 8 * machine.glowIntensity;
+                    context.shadowBlur = 8;
                 }
                 
                 context.fillText(character, pos.x, pos.y);

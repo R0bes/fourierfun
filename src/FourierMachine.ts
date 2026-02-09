@@ -23,7 +23,6 @@ export class FourierMachine {
     public showAmplitudes: boolean = true;
     public showTrail: boolean = true;
     public trailLength: number = 25;
-    public trailBrightness: number = 0.8;
     public characterTrailLength: number = 33;
     public characterTrailIntensity: number = 1.0;
     public showOriginalLine: boolean = true;
@@ -39,7 +38,6 @@ export class FourierMachine {
     public showPhaseDiagram: boolean = false;
     public animationEasing: 'linear' | 'easeInOut' | 'bounce' = 'easeInOut';
     public colorGradient: boolean = true;
-    public glowIntensity: number = 1.0;
     
     private animationSteps: number = 200;
     private currentAnimationStep: number = 0;

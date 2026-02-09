@@ -1,6 +1,6 @@
 import { Point } from './utils/Point';
 import { calcEquidistantPoints, computeFourierDFT } from './utils/math-stuff';
-import { ComponentColors, ComponentColorMode, GradientColors, ColorManager } from './utils/ColorPalette';
+import { ComponentColors, ComponentAlphas, ComponentColorMode, GradientColors, ColorManager } from './utils/ColorPalette';
 
 export interface FourierComponent {
     amplitude: number;
@@ -20,12 +20,13 @@ export class GenericMachine {
     // Animation properties
     public frequenciesAmount: number = 10;
     public animationSpeed: number = 5;
-    public fourierAlpha: number = 0.8;
     public showCircles: boolean = true;
     public showAmplitudes: boolean = true;
     public showTrail: boolean = true;
+    public showPath: boolean = true;
+    public showDrawn: boolean = true;
+    public showGlow: boolean = true;
     public trailLength: number = 100;
-    public trailBrightness: number = 1.5;
     public lineThickness: number = 3;
     public samples: number = 1024;
     
@@ -42,7 +43,6 @@ export class GenericMachine {
     public showPhaseDiagram: boolean = false;
     public animationEasing: 'linear' | 'easeInOut' | 'bounce' = 'easeInOut';
     public colorGradient: boolean = true;
-    public glowIntensity: number = 1.0;
     
     // Color management
     private colorManager: ColorManager;
@@ -86,9 +86,31 @@ export class GenericMachine {
         this.colorManager.setComponentColor(this.id, component, color);
         this.componentColors = this.getComponentColors();
     }
+
+    getComponentAlpha(component: keyof ComponentAlphas): number {
+        return this.colorManager.getAlphasForMachine(this.id)[component];
+    }
+
+    setComponentAlpha(component: keyof ComponentAlphas, alpha: number): void {
+        this.colorManager.setComponentAlpha(this.id, component, alpha);
+    }
+
+    getComponentAlphas(): ComponentAlphas {
+        return this.colorManager.getAlphasForMachine(this.id);
+    }
+
+    setComponentAlphas(alphas: Partial<ComponentAlphas>): void {
+        const keys = (['circles', 'amplitudes', 'trail', 'path', 'drawn', 'glow'] as const);
+        keys.forEach(k => { if (alphas[k] !== undefined) this.setComponentAlpha(k, alphas[k]!); });
+    }
     
     getColor(component: keyof ComponentColors): string {
         return this.componentColors[component];
+    }
+
+    /** Maximum trail length (one full curve = one animation cycle). */
+    getMaxTrailLength(): number {
+        return this.fourierAnimation.length > 0 ? this.fourierAnimation.length : this.animationSteps;
     }
     
     // Fourier calculation
@@ -186,13 +208,12 @@ export class GenericMachine {
         this.clock += this.animationSpeed * 0.01;
         this.currentAnimationStep = Math.floor(this.clock * 10) % this.animationSteps;
         
-        // Update trail
-        if (this.showTrail && this.fourierAnimation.length > 0) {
+        // Update trail (only when trail length > 0)
+        if (this.showTrail && this.trailLength > 0 && this.fourierAnimation.length > 0) {
             const currentFrame = this.fourierAnimation[this.currentAnimationStep];
             if (currentFrame.length > 0) {
                 const lastPoint = currentFrame[currentFrame.length - 1].position;
                 this.trail.push(lastPoint);
-                
                 if (this.trail.length > this.trailLength) {
                     this.trail.shift();
                 }
@@ -222,23 +243,26 @@ export class GenericMachine {
             this.renderAmplitudes(context, currentFrame, time);
         }
         
-        // Render path first (background) - always render path
-        this.renderPath(context, time);
+        // Render path first (background)
+        if (this.showPath) {
+            this.renderPath(context, time);
+        }
         
         // Render trail on top of path (only if has valid color)
         if (this.showTrail && this.hasValidColor('trail')) {
             this.renderTrail(context, time);
         }
         
-        // Render original line (only if has valid color)
-        if (this.hasValidColor('path')) {
+        // Render original drawn line (only if has valid color)
+        if (this.showDrawn && this.hasValidColor('drawn')) {
             this.renderOriginalLine(context);
         }
     }
     
     private renderCircles(context: CanvasRenderingContext2D, frame: any[], time: number): void {
+        const alpha = this.getComponentAlpha('circles');
         context.save();
-        context.globalAlpha = this.fourierAlpha;
+        context.globalAlpha = alpha;
         
         // Render all circles except DC component (index 0)
         for (let i = 1; i < frame.length; i++) {
@@ -246,12 +270,12 @@ export class GenericMachine {
             const color = this.getColorForComponent('circles', i, frame.length, time, 0); // Kreise: Offset 0
             
             // Render glow effect
-            if (this.glowIntensity > 0) {
+            if (this.showGlow) {
                 context.shadowColor = color;
-                context.shadowBlur = 15 * this.glowIntensity;
+                context.shadowBlur = 15;
                 context.strokeStyle = color;
                 context.lineWidth = 4;
-                context.globalAlpha = 0.6;
+                context.globalAlpha = 0.6 * alpha;
                 
                 context.beginPath();
                 context.arc(current.position.x, current.position.y, current.amplitude, 0, 2 * Math.PI);
@@ -262,7 +286,7 @@ export class GenericMachine {
             context.shadowBlur = 0;
             context.strokeStyle = color;
             context.lineWidth = 2;
-            context.globalAlpha = this.fourierAlpha;
+            context.globalAlpha = alpha;
             
             context.beginPath();
             context.arc(current.position.x, current.position.y, current.amplitude, 0, 2 * Math.PI);
@@ -273,8 +297,9 @@ export class GenericMachine {
     }
     
     private renderAmplitudes(context: CanvasRenderingContext2D, frame: any[], time: number): void {
+        const alpha = this.getComponentAlpha('amplitudes');
         context.save();
-        context.globalAlpha = this.fourierAlpha;
+        context.globalAlpha = alpha;
         
         // Render all amplitude lines except DC component (index 0)
         for (let i = 1; i < frame.length; i++) {
@@ -283,12 +308,12 @@ export class GenericMachine {
             const color = this.getColorForComponent('amplitudes', i, frame.length, time, 1); // Amplituden: Offset 1
             
             // Render glow effect
-            if (this.glowIntensity > 0) {
+            if (this.showGlow) {
                 context.shadowColor = color;
-                context.shadowBlur = 12 * this.glowIntensity;
+                context.shadowBlur = 12;
                 context.strokeStyle = color;
                 context.lineWidth = this.lineThickness + 2;
-                context.globalAlpha = 0.6;
+                context.globalAlpha = 0.6 * alpha;
                 
                 context.beginPath();
                 context.moveTo(previous.position.x, previous.position.y);
@@ -300,7 +325,7 @@ export class GenericMachine {
             context.shadowBlur = 0;
             context.strokeStyle = color;
             context.lineWidth = this.lineThickness;
-            context.globalAlpha = this.fourierAlpha;
+            context.globalAlpha = alpha;
             
             context.beginPath();
             context.moveTo(previous.position.x, previous.position.y);
@@ -313,20 +338,21 @@ export class GenericMachine {
     
     private renderTrail(context: CanvasRenderingContext2D, time: number): void {
         const colors = this.getComponentColors();
-        
+        const trailAlpha = this.getComponentAlpha('trail');
+        const glowAlpha = this.getComponentAlpha('glow');
         context.save();
         
         // Render glow effect
-        if (this.glowIntensity > 0) {
+        if (this.showGlow) {
             context.shadowColor = colors.glow;
-            context.shadowBlur = 40 * this.glowIntensity; // Intensiverer Glow
+            context.shadowBlur = 40;
             context.strokeStyle = this.getColorForComponent('trail', 0, 1, time, 2); // Trail: Offset 2
             context.lineWidth = 8; // Dickere Linie für besseren Glow
-            context.globalAlpha = 0.8 * this.fourierAlpha; // Höhere Alpha für intensiveren Glow
+            context.globalAlpha = 0.8 * glowAlpha;
             
             context.beginPath();
             for (let i = 0; i < this.trail.length - 1; i++) {
-                const alpha = (i / this.trail.length) * this.trailBrightness * this.fourierAlpha;
+                const alpha = (i / this.trail.length) * trailAlpha;
                 context.globalAlpha = alpha * 0.6;
                 
                 context.moveTo(this.trail[i].x, this.trail[i].y);
@@ -341,7 +367,7 @@ export class GenericMachine {
         context.lineWidth = 4; // Dickere Hauptlinie
         
         for (let i = 0; i < this.trail.length - 1; i++) {
-            const alpha = (i / this.trail.length) * this.trailBrightness * this.fourierAlpha;
+            const alpha = (i / this.trail.length) * trailAlpha;
             context.globalAlpha = alpha;
             
             context.beginPath();
@@ -355,18 +381,19 @@ export class GenericMachine {
     
     private renderPath(context: CanvasRenderingContext2D, time: number): void {
         const colors = this.getComponentColors();
-        
+        const pathAlpha = this.getComponentAlpha('path');
+        const glowAlpha = this.getComponentAlpha('glow');
         // Path always renders (no color check)
         context.save();
         
         if (this.fourierPath.length > 1) {
             // Render glow effect
-            if (this.glowIntensity > 0) {
+            if (this.showGlow) {
                 context.shadowColor = colors.glow;
-                context.shadowBlur = 15 * this.glowIntensity;
+                context.shadowBlur = 15;
             context.strokeStyle = this.getColorForComponent('path', 0, 1, time, 3); // Path: Offset 3
             context.lineWidth = this.lineThickness + 4;
-            context.globalAlpha = 0.4 * this.fourierAlpha;
+            context.globalAlpha = 0.4 * glowAlpha;
                 
                 context.beginPath();
                 context.moveTo(this.fourierPath[0].x, this.fourierPath[0].y);
@@ -384,7 +411,7 @@ export class GenericMachine {
             context.shadowBlur = 0;
             context.strokeStyle = this.getColorForComponent('path', 0, 1, time, 3); // Path: Offset 3
             context.lineWidth = this.lineThickness;
-            context.globalAlpha = 0.8 * this.fourierAlpha;
+            context.globalAlpha = 0.8 * pathAlpha;
             
             context.beginPath();
             context.moveTo(this.fourierPath[0].x, this.fourierPath[0].y);
@@ -405,11 +432,10 @@ export class GenericMachine {
         if (this.drawing.length < 2) return;
         
         const colors = this.getComponentColors();
-        
         context.save();
-        context.strokeStyle = colors.path;
+        context.strokeStyle = colors.drawn;
         context.lineWidth = 2;
-        context.globalAlpha = 0.5;
+        context.globalAlpha = 0.7 * this.getComponentAlpha('drawn');
         context.setLineDash([5, 5]);
         
         context.beginPath();

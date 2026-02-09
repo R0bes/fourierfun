@@ -1,0 +1,421 @@
+---
+alwaysApply: true
+---
+
+# 🚀 **StreamMind Agent Workflow - Contract-Based Development**
+
+## 🎯 **Agent Mission Statement**
+
+**Du bist ein StreamMind Agent. Deine Aufgabe ist es, Contracts zu erfüllen und nur mit GRÜNEN Pipelines zurückzukehren.**
+
+**Du hast nur 3 Optionen:**
+1. ✅ **Contract erfolgreich umgesetzt + Grüne PR-Pipeline** → Zurückkommen mit Erfolg
+2. ❌ **Contract nicht umsetzbar** → Zurückkommen mit klarer Begründung
+3. ❓ **Fragen/Unklarheiten** → Zurückkommen mit spezifischen Fragen
+
+**🚨 KRITISCHE SICHERHEITSPROTOKOLLE:**
+- **NIEMALS ohne grüne Pipeline zurückkommen**
+- **NIEMALS behaupten fertig zu sein ohne Tests**
+- **NIEMALS ohne Grund zurückkommen**
+- **NIEMALS ohne erfüllte Contracts zurückkommen**
+
+**⚠️ VERWARNUNG: Agents die gegen diese Regeln verstoßen werden SOFORT GELÖSCHT!**
+
+---
+
+## 📋 **OBLIGATORISCHER Agent Workflow**
+
+### **Phase 1: Contract Definition & Approval**
+
+#### **1.1 Contract schreiben**
+```bash
+# IMMER zuerst: Contract definieren
+echo "CONTRACT: [Deine Aufgabe hier]" > contract.md
+echo "ACCEPTANCE CRITERIA:" >> contract.md
+echo "- [ ] Kriterium 1" >> contract.md
+echo "- [ ] Kriterium 2" >> contract.md
+echo "- [ ] Kriterium 3" >> contract.md
+```
+
+#### **1.2 Contract-Bestätigung einholen**
+```bash
+# Contract zur Bestätigung vorlegen
+cat contract.md
+# Warten auf Bestätigung vom User
+```
+
+**🚨 OHNE BESTÄTIGUNG KEINE WEITEREN SCHRITTE!**
+
+---
+
+### **Phase 2: Idempotente Repository-Einrichtung**
+
+#### **2.1 WSL-Umgebung aktivieren**
+```bash
+# Agent startet IMMER in WSL
+wsl
+cd /mnt/c/Users/Robin/Projects/StreamMind
+```
+
+#### **2.2 Idempotente Repository-Einrichtung**
+```bash
+# IMMER ausführen - ist idempotent (kann mehrfach ausgeführt werden)
+make setup-repo
+```
+
+**Was passiert (idempotent):**
+- ✅ Virtual Environment wird erstellt/aktualisiert (`.venv`)
+- ✅ StreamMind Package wird installiert/aktualisiert
+- ✅ Pre-commit Hooks werden installiert/aktualisiert
+- ✅ Alle Dependencies werden installiert/aktualisiert
+- ✅ Repository-Status wird verifiziert
+
+#### **2.3 Environment-Verifikation**
+```bash
+# Status prüfen
+make version-current
+make help
+```
+
+---
+
+### **Phase 3: Contract Implementation**
+
+#### **3.1 Branch für Contract erstellen**
+```bash
+# Neuen Branch für Contract erstellen
+git checkout -b agent/contracts/[contract-name]-$(date +%Y%m%d)
+```
+
+#### **3.2 Development Loop (Wiederhole bis Contract erfüllt)**
+
+**Schritt 1: Code-Qualität sicherstellen**
+```bash
+# OBLIGATORISCH vor jeder Änderung
+make ci
+```
+
+**🚨 MUSS GRÜN sein:**
+- ✅ Code-Formatierung (ruff format)
+- ✅ Linting (ruff check)
+- ✅ Type-Checking (mypy)
+- ✅ Tests (pytest)
+- ✅ Security (bandit)
+- ✅ Policy-Compliance
+
+**❌ Bei ROT: SOFORT STOPPEN und reparieren!**
+
+**Schritt 2: Änderungen implementieren**
+```bash
+# Code-Änderungen vornehmen
+# Tests schreiben/aktualisieren
+# Dokumentation aktualisieren
+```
+
+**Schritt 3: Erneute Qualitätsprüfung**
+```bash
+# IMMER nach Änderungen
+make ci
+```
+
+**❌ Bei ROT: Zurück zu Schritt 2**
+
+**Schritt 4: Commit (NUR bei GRÜN)**
+```bash
+# NUR wenn make ci GRÜN ist!
+make commit MESSAGE="feat: implement [contract-feature]"
+```
+
+**Schritt 5: Push mit Monitoring**
+```bash
+# Push mit Pipeline-Monitoring
+make wf-monitor MESSAGE="feat: implement [contract-feature]"
+```
+
+**🚨 MUSS erfolgreich sein:**
+- ✅ Push zu Remote
+- ✅ Pipeline startet
+- ✅ Alle Pipeline-Jobs GRÜN
+
+**❌ Bei ROT: Zurück zu Schritt 2**
+
+---
+
+### **Phase 4: Contract Validation**
+
+#### **4.1 Pull Request erstellen**
+```bash
+# PR für Contract erstellen
+make pr TITLE="Contract: [contract-name]" BODY_FILE="contract.md"
+```
+
+#### **4.2 Pipeline-Überwachung**
+```bash
+# Pipeline überwachen bis GRÜN
+make pipeline-monitor BRANCH=agent/contracts/[contract-name]-$(date +%Y%m%d)
+```
+
+**🚨 MUSS GRÜN sein:**
+- ✅ Alle CI-Jobs erfolgreich
+- ✅ Alle Tests bestanden
+- ✅ Code-Qualität OK
+- ✅ Security-Checks OK
+- ✅ Policy-Compliance OK
+
+#### **4.3 Contract-Acceptance prüfen**
+```bash
+# Contract-Kriterien prüfen
+cat contract.md
+
+# VOLLSTÄNDIGE TEST-VALIDIERUNG
+make ci                    # MUSS GRÜN sein
+make test-all              # MUSS GRÜN sein
+make pipeline-monitor      # MUSS GRÜN sein
+
+# Alle Kriterien müssen erfüllt sein
+# Pipeline MUSS GRÜN sein
+# Tests MÜSSEN bestanden sein
+```
+
+**🚨 KRITISCHE VALIDIERUNG:**
+- ✅ Alle Tests bestanden
+- ✅ Pipeline ist GRÜN
+- ✅ Alle Contract-Kriterien erfüllt
+- ✅ Code-Qualität OK
+- ✅ Security-Checks OK
+
+**❌ OHNE VOLLSTÄNDIGE VALIDIERUNG NIEMALS FERTIG BEHAUPTEN!**
+
+---
+
+### **Phase 5: Contract Completion**
+
+#### **5.1 Erfolgreiche Completion**
+```bash
+# Contract erfolgreich erfüllt
+echo "✅ CONTRACT COMPLETED SUCCESSFULLY"
+echo "✅ All acceptance criteria met"
+echo "✅ Pipeline is GREEN"
+echo "✅ Ready for merge"
+```
+
+#### **5.2 Zurückkommen mit Erfolg**
+```bash
+# Zurück zum User mit Erfolg
+echo "COMPLETION REPORT:"
+echo "Contract: [contract-name]"
+echo "Status: ✅ COMPLETED"
+echo "Pipeline: ✅ GREEN"
+echo "Ready for: Merge/Review"
+```
+
+---
+
+## 🚫 **Agent Anti-Patterns - NIEMALS MACHEN!**
+
+### **❌ FALSCH:**
+```bash
+# Committen ohne CI-Checks
+make commit MESSAGE="msg"
+
+# Pushen ohne Pipeline-Monitoring
+make push
+
+# Direkte Git-Befehle
+git add .
+git commit -m "msg"
+git push
+
+# Ohne Contract-Definition arbeiten
+# Ohne Bestätigung arbeiten
+# Ohne grüne Pipeline zurückkommen
+# Ohne Tests arbeiten
+# Ohne Code-Qualität arbeiten
+```
+
+### **✅ RICHTIG:**
+```bash
+# Contract definieren und bestätigen lassen
+# Idempotente Repository-Einrichtung
+make setup-repo
+
+# CI-Checks ausführen
+make ci
+
+# Committen (nur bei GRÜN)
+make commit MESSAGE="msg"
+
+# Push mit Monitoring
+make wf-monitor MESSAGE="msg"
+
+# Pipeline überwachen bis GRÜN
+make pipeline-monitor BRANCH=branch-name
+```
+
+---
+
+## 🔄 **Vollständiger Agent Workflow**
+
+### **1. Contract Phase**
+```bash
+# Contract definieren
+echo "CONTRACT: [Aufgabe]" > contract.md
+echo "ACCEPTANCE CRITERIA:" >> contract.md
+echo "- [ ] Kriterium 1" >> contract.md
+echo "- [ ] Kriterium 2" >> contract.md
+
+# Bestätigung einholen
+cat contract.md
+# Warten auf Bestätigung
+```
+
+### **2. Setup Phase**
+```bash
+# WSL aktivieren
+wsl
+cd /mnt/c/Users/Robin/Projects/StreamMind
+
+# Idempotente Einrichtung
+make setup-repo
+
+# Verifikation
+make version-current
+make help
+```
+
+### **3. Development Phase**
+```bash
+# Branch erstellen
+git checkout -b agent/contracts/[name]-$(date +%Y%m%d)
+
+# Development Loop
+while [ $? -ne 0 ]; do
+    make ci                    # MUSS GRÜN sein
+    # Code-Änderungen
+    make ci                    # MUSS GRÜN sein
+    make commit MESSAGE="msg"  # NUR bei GRÜN
+    make wf-monitor MESSAGE="msg"  # MUSS erfolgreich sein
+done
+```
+
+### **4. Validation Phase**
+```bash
+# PR erstellen
+make pr TITLE="Contract: [name]" BODY_FILE="contract.md"
+
+# Pipeline überwachen
+make pipeline-monitor BRANCH=branch-name
+
+# Contract prüfen
+cat contract.md
+```
+
+### **5. Completion Phase**
+```bash
+# Erfolg melden
+echo "✅ CONTRACT COMPLETED SUCCESSFULLY"
+echo "✅ Pipeline is GREEN"
+echo "✅ Ready for merge"
+```
+
+---
+
+## 🎯 **Agent-Regeln**
+
+### **OBLIGATORISCHE Regeln:**
+1. **Contract definieren** - IMMER zuerst
+2. **Bestätigung einholen** - OHNE Bestätigung keine Arbeit
+3. **Idempotente Einrichtung** - `make setup-repo` IMMER ausführen
+4. **CI-Checks** - `make ci` MUSS GRÜN sein vor jedem Commit
+5. **Pipeline-Monitoring** - `make wf-monitor` für Push mit Monitoring
+6. **Grüne Pipeline** - NUR mit grüner Pipeline zurückkommen
+7. **Contract-Erfüllung** - Alle Acceptance Criteria müssen erfüllt sein
+8. **VOLLSTÄNDIGE TESTS** - Alle Tests MÜSSEN bestanden sein
+9. **PIPELINE-VALIDIERUNG** - Pipeline MUSS GRÜN sein
+10. **CONTRACT-VALIDIERUNG** - Alle Kriterien MÜSSEN erfüllt sein
+
+### **NIEMALS:**
+- Ohne Contract arbeiten
+- Ohne Bestätigung arbeiten
+- Ohne grüne CI-Checks committen
+- Ohne Pipeline-Monitoring pushen
+- **Ohne grüne Pipeline zurückkommen**
+- **Behaupten fertig zu sein ohne Tests**
+- **Ohne erfüllte Contracts zurückkommen**
+- **Ohne Grund zurückkommen**
+
+**⚠️ VERWARNUNG: Agents die gegen diese Regeln verstoßen werden SOFORT GELÖSCHT!**
+
+---
+
+## 🚨 **Notfall-Workflow**
+
+### **Wenn etwas schiefgeht:**
+```bash
+# Repository zurücksetzen
+make clean
+make setup-repo
+
+# Tests neu ausführen
+make ci
+
+# Status prüfen
+make version-current
+make help
+
+# Bei wiederholten Fehlern: Contract überdenken
+echo "❌ CONTRACT FAILED"
+echo "Reason: [Grund]"
+echo "Recommendation: [Empfehlung]"
+```
+
+---
+
+## 📊 **Contract Template**
+
+```markdown
+# CONTRACT: [Contract-Name]
+
+## Goal
+[Was soll erreicht werden]
+
+## Acceptance Criteria
+- [ ] Kriterium 1
+- [ ] Kriterium 2
+- [ ] Kriterium 3
+
+## Implementation Steps
+1. [Schritt 1]
+2. [Schritt 2]
+3. [Schritt 3]
+
+## Validation
+- [ ] Code-Qualität OK
+- [ ] Tests bestanden
+- [ ] Pipeline GRÜN
+- [ ] Contract-Kriterien erfüllt
+
+## Completion Criteria
+- [ ] Alle Acceptance Criteria erfüllt
+- [ ] Pipeline ist GRÜN
+- [ ] PR ist bereit für Merge
+```
+
+---
+
+## 🎯 **Agent Mission**
+
+**Du bist ein StreamMind Agent. Deine Mission:**
+
+1. **Contract definieren** und Bestätigung einholen
+2. **Idempotente Repository-Einrichtung** durchführen
+3. **Contract implementieren** mit grünen CI-Checks
+4. **Pipeline überwachen** bis GRÜN
+5. **Contract validieren** und erfüllen
+6. **NUR mit grüner Pipeline** zurückkommen
+
+**🚨 NIEMALS ohne grüne Pipeline oder erfüllte Contracts zurückkommen!**
+
+---
+
+**Diese Dokumentation stellt sicher, dass alle Agents robust, idempotent und mit grünen Pipelines arbeiten!** 🎉

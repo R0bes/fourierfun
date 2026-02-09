@@ -1,17 +1,28 @@
 export interface ComponentColors {
     circles: string;        // Kreise
-    amplitudes: string;     // Amplituden/Linien
+    amplitudes: string;    // Amplituden/Linien
     trail: string;          // Path Trail
-    path: string;           // Eigentlicher Pfad
+    path: string;          // Errechnete Kurve (Fourier)
+    drawn: string;          // Gezeichnete Linie (Original)
     glow: string;           // Glow-Effekt
 }
 
+export interface ComponentAlphas {
+    circles: number;
+    amplitudes: number;
+    trail: number;
+    path: number;
+    drawn: number;
+    glow: number;
+}
+
 export interface ComponentColorMode {
-    circles: 'solid' | 'random' | 'gradient';     // Farbmodus für Kreise
-    amplitudes: 'solid' | 'random' | 'gradient';   // Farbmodus für Amplituden
-    trail: 'solid' | 'random' | 'gradient';       // Farbmodus für Trail
-    path: 'solid' | 'random' | 'gradient';        // Farbmodus für Pfad
-    glow: 'solid' | 'random' | 'gradient';        // Farbmodus für Glow
+    circles: 'solid' | 'random' | 'gradient';
+    amplitudes: 'solid' | 'random' | 'gradient';
+    trail: 'solid' | 'random' | 'gradient';
+    path: 'solid' | 'random' | 'gradient';
+    drawn: 'solid' | 'random' | 'gradient';
+    glow: 'solid' | 'random' | 'gradient';
 }
 
 export interface GradientColors {
@@ -42,6 +53,7 @@ export const NEON_COLORS: NeonColor[] = [
 export class ColorManager {
     private static instance: ColorManager;
     private colorAssignments: Map<string, ComponentColors> = new Map();
+    private alphaAssignments: Map<string, ComponentAlphas> = new Map();
     private colorModes: Map<string, ComponentColorMode> = new Map();
     private gradientColors: Map<string, GradientColors> = new Map();
     
@@ -58,6 +70,7 @@ export class ColorManager {
             amplitudes: NEON_COLORS[0].hex,
             trail: NEON_COLORS[0].hex,
             path: NEON_COLORS[0].hex,
+            drawn: NEON_COLORS[1].hex,
             glow: NEON_COLORS[0].glow
         };
     }
@@ -68,6 +81,7 @@ export class ColorManager {
             amplitudes: 'solid',
             trail: 'solid',
             path: 'solid',
+            drawn: 'solid',
             glow: 'solid'
         };
     }
@@ -80,16 +94,42 @@ export class ColorManager {
     }
     
     getColorsForMachine(machineId: string): ComponentColors {
+        const defaults = this.getDefaultColors();
         if (!this.colorAssignments.has(machineId)) {
-            this.colorAssignments.set(machineId, this.getDefaultColors());
+            this.colorAssignments.set(machineId, { ...defaults });
         }
-        return this.colorAssignments.get(machineId)!;
+        return { ...defaults, ...this.colorAssignments.get(machineId)! };
     }
     
     setComponentColor(machineId: string, component: keyof ComponentColors, color: string): void {
         const colors = this.getColorsForMachine(machineId);
         colors[component] = color;
         this.colorAssignments.set(machineId, colors);
+    }
+
+    getDefaultAlphas(): ComponentAlphas {
+        return {
+            circles: 0.8,
+            amplitudes: 0.8,
+            trail: 0.8,
+            path: 0.8,
+            drawn: 0.8,
+            glow: 0.8
+        };
+    }
+
+    getAlphasForMachine(machineId: string): ComponentAlphas {
+        const defaults = this.getDefaultAlphas();
+        if (!this.alphaAssignments.has(machineId)) {
+            this.alphaAssignments.set(machineId, { ...defaults });
+        }
+        return { ...defaults, ...this.alphaAssignments.get(machineId)! };
+    }
+
+    setComponentAlpha(machineId: string, component: keyof ComponentAlphas, alpha: number): void {
+        const alphas = this.getAlphasForMachine(machineId);
+        alphas[component] = Math.max(0, Math.min(1, alpha));
+        this.alphaAssignments.set(machineId, alphas);
     }
     
     getNeonColorByName(name: string): NeonColor | undefined {

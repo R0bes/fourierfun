@@ -15,7 +15,7 @@ window.onload = () => {
   }
   
   // Canvas-Größe setzen - auf den sichtbaren Bereich beschränken
-  const menuWidth = 300; // Width of the right menu
+  const menuWidth = 320; // Width of the right menu (compact)
   canvas.width = window.innerWidth - menuWidth;
   canvas.height = window.innerHeight;
   
@@ -29,12 +29,10 @@ window.onload = () => {
   const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
   const freq = $('freq');
   const speed = $('speed');
-  const alpha = $('alpha');
   const toggleCircles = $('toggleCircles') as HTMLInputElement;
   const toggleLines = $('toggleLines') as HTMLInputElement;
   const toggleTrail = $('toggleTrail') as HTMLInputElement;
   const trailLength = $('trailLength');
-  const trailBrightness = $('trailBrightness');
   
   // Grid controls
   const toggleGrid = $('toggleGrid') as HTMLInputElement;
@@ -56,11 +54,17 @@ window.onload = () => {
   const uploadImage = document.getElementById('uploadImage') as HTMLButtonElement;
 
   // Neue Controls für erweiterte Visualisierungen
-  const toggleHarmonics = $('toggleHarmonics') as HTMLInputElement;
-  const harmonicsCount = $('harmonicsCount');
   const toggleFrequencySpectrum = $('toggleFrequencySpectrum') as HTMLInputElement;
   const togglePhaseDiagram = $('togglePhaseDiagram') as HTMLInputElement;
-  const glowIntensity = $('glowIntensity');
+
+  // Recording controls
+  const recordingDuration = $('recordingDuration');
+  const recordingFrameRate = $('recordingFrameRate');
+  const startRecording = document.getElementById('startRecording') as HTMLButtonElement;
+  const stopRecording = document.getElementById('stopRecording') as HTMLButtonElement;
+  const recordingStatus = document.getElementById('recordingStatus') as HTMLDivElement;
+  const recordingProgress = document.getElementById('recordingProgress') as HTMLDivElement;
+  const recordingStatusText = document.getElementById('recordingStatusText') as HTMLSpanElement;
 
   // Helper function to update control values
   const updateControlValue = (id: string, value: string | number) => {
@@ -86,11 +90,6 @@ window.onload = () => {
       machine.animationSpeed = parseFloat(speed.value);
     });
   };
-  if (alpha) alpha.oninput = () => { 
-    multiMachine.getAllMachines().forEach(machine => {
-      machine.fourierAlpha = parseFloat(alpha.value);
-    });
-  };
   if (toggleCircles) toggleCircles.oninput = () => { 
     multiMachine.getAllMachines().forEach(machine => {
       machine.showCircles = toggleCircles.checked;
@@ -107,14 +106,12 @@ window.onload = () => {
     });
   };
   if (trailLength) trailLength.oninput = () => { 
+    const raw = parseInt(trailLength.value, 10);
     multiMachine.getAllMachines().forEach(machine => {
-      machine.trailLength = parseInt(trailLength.value, 10);
+      const max = machine.getMaxTrailLength ? machine.getMaxTrailLength() : 200;
+      machine.trailLength = Math.max(0, Math.min(raw, max));
     });
-  };
-  if (trailBrightness) trailBrightness.oninput = () => { 
-    multiMachine.getAllMachines().forEach(machine => {
-      machine.trailBrightness = parseFloat(trailBrightness.value);
-    });
+    updateControlValue('trailLengthValue', trailLength.value);
   };
   if (reset) reset.onclick = () => { multiMachine.clearAllMachines(); };
 
@@ -178,18 +175,6 @@ window.onload = () => {
   };
   
   // Neue Controls für erweiterte Visualisierungen
-  if (toggleHarmonics) toggleHarmonics.oninput = () => { 
-    multiMachine.setGridProperty('showHarmonics', toggleHarmonics.checked);
-  };
-  
-  if (harmonicsCount) harmonicsCount.oninput = () => { 
-    const value = parseInt(harmonicsCount.value, 10);
-    multiMachine.getAllMachines().forEach(machine => {
-      machine.harmonicsCount = value;
-    });
-    updateControlValue('harmonicsCountValue', harmonicsCount.value);
-  };
-  
   if (toggleFrequencySpectrum) toggleFrequencySpectrum.oninput = () => { 
     multiMachine.setGridProperty('showFrequencySpectrum', toggleFrequencySpectrum.checked);
   };
@@ -197,13 +182,35 @@ window.onload = () => {
   if (togglePhaseDiagram) togglePhaseDiagram.oninput = () => { 
     multiMachine.setGridProperty('showPhaseDiagram', togglePhaseDiagram.checked);
   };
-  
-  if (glowIntensity) glowIntensity.oninput = () => { 
-    const value = parseFloat(glowIntensity.value);
-    multiMachine.getAllMachines().forEach(machine => {
-      machine.glowIntensity = value;
-    });
-    updateControlValue('glowIntensityValue', glowIntensity.value);
+
+  // Recording control handlers
+  if (recordingDuration) recordingDuration.oninput = () => {
+    updateControlValue('recordingDurationValue', recordingDuration.value + 's');
+  };
+
+  if (recordingFrameRate) recordingFrameRate.oninput = () => {
+    updateControlValue('recordingFrameRateValue', recordingFrameRate.value + ' FPS');
+  };
+
+  if (startRecording) startRecording.onclick = () => {
+    const duration = parseFloat(recordingDuration?.value || '5') * 1000; // Convert to milliseconds
+    multiMachine.startRecording(duration);
+    
+    // Update UI
+    startRecording.disabled = true;
+    stopRecording.disabled = false;
+    recordingStatus.style.display = 'block';
+    recordingStatusText.textContent = 'Aufnahme läuft...';
+  };
+
+  if (stopRecording) stopRecording.onclick = () => {
+    multiMachine.stopRecording();
+    
+    // Update UI
+    startRecording.disabled = false;
+    stopRecording.disabled = true;
+    recordingStatus.style.display = 'none';
+    recordingProgress.style.width = '0%';
   };
 
   if (imageThreshold) imageThreshold.oninput = () => {
@@ -216,21 +223,25 @@ window.onload = () => {
 
   if (uploadImage && imageUpload) {
     uploadImage.onclick = () => {
+      imageUpload.value = '';
       imageUpload.click();
     };
-    
     imageUpload.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        console.log('Image selected:', file.name);
-        try {
-          await multiMachine.processImageUpload(file);
-          console.log('✅ Bild erfolgreich verarbeitet!');
-        } catch (error) {
-          console.error('❌ Fehler bei der Bildverarbeitung:', error);
-          alert(`Fehler bei der Bildverarbeitung: ${error}`);
-        }
+      const input = e.target as HTMLInputElement;
+      const file = input.files?.[0];
+      if (!file) return;
+      if (!multiMachine.getActiveMachine()) {
+        alert('Bitte zuerst im Tab „Maschine“ eine Maschine auswählen.');
+        return;
       }
+      try {
+        await multiMachine.processImageUpload(file);
+        console.log('Bild erfolgreich verarbeitet');
+      } catch (error) {
+        console.error('Fehler bei der Bildverarbeitung:', error);
+        alert(error instanceof Error ? error.message : 'Fehler bei der Bildverarbeitung');
+      }
+      input.value = '';
     };
   }
 
@@ -285,7 +296,7 @@ window.onload = () => {
 
   // Resize handling
   const handleResize = () => {
-    const menuWidth = 300; // Width of the right menu
+    const menuWidth = 320; // Width of the right menu (compact)
     canvas.width = window.innerWidth - menuWidth;
     canvas.height = window.innerHeight;
     multiMachine.handleResize();
@@ -303,6 +314,18 @@ window.onload = () => {
     // Alle Maschinen updaten und rendern
     multiMachine.update();
     multiMachine.render(context);
+    
+    // Update recording progress
+    if (multiMachine.isCurrentlyRecording()) {
+      const progress = multiMachine.getRecordingProgress();
+      if (recordingProgress) {
+        recordingProgress.style.width = `${progress * 100}%`;
+      }
+      if (recordingStatusText) {
+        const remaining = Math.ceil((1 - progress) * parseFloat(recordingDuration?.value || '5'));
+        recordingStatusText.textContent = `Aufnahme läuft... ${remaining}s verbleibend`;
+      }
+    }
     
     requestAnimationFrame(loop);
   };
