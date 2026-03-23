@@ -1,0 +1,25 @@
+# Dependencies (installed in image)
+node_modules
+
+# Git / IDE
+.git
+.github
+.cursor
+.mind
+
+# Not needed for root webpack build
+modern-fourier
+3d-fourier
+video
+img
+
+# Large / generated
+*.mp4
+public/bundle.js
+
+# Misc
+**/*.md
+.env
+.env.*
+*.log
+.DS_Store
