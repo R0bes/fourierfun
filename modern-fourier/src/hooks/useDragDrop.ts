@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Point, DragState } from '../types'
+import { DragState } from '../types'
 
 export const useDragDrop = () => {
   const [dragState, setDragState] = useState<DragState>({

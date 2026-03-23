@@ -65,5 +65,17 @@ export const getDefaultSettings = (): Settings => ({
   imageBlur: 0,
   imageEdgeDetection: 'none',
   imageMorphology: false,
-  imageInvert: false
+  imageInvert: false,
+  showGrid: false,
+  gridCellSize: 20,
+  gridRainbowMode: false,
+  gridParticleSystem: false,
+  showFrequencySpectrum: false,
+  showPhaseDiagram: false,
+  spectrumPanelX: 16,
+  spectrumPanelY: 16,
+  phasePanelX: 16,
+  phasePanelY: 200,
+  recordingDurationMs: 5000,
+  recordingFrameRate: 30
 })

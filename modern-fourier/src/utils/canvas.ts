@@ -53,7 +53,7 @@ export const drawCoordinateSystem = (
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  phaseColor: string = '#00ffff'
+  _phaseColor: string = '#00ffff'
 ): void => {
   // Draw a subtle background to make the canvas visible
   ctx.fillStyle = 'rgba(0, 0, 0, 0.05)' // Very subtle dark background
@@ -108,10 +108,10 @@ export const drawBackgroundImage = (
  */
 export const drawModeIndicator = (
   ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
+  _width: number,
+  _height: number,
   phaseColor: string,
-  isCurveClosed: boolean,
+  _isCurveClosed: boolean,
   isCurveConfigured: boolean,
   isCurveFixed: boolean
 ): void => {
@@ -240,9 +240,11 @@ export const drawFourierCircles = (
   width: number,
   height: number,
   color: string = '#6c5ce7',
-  alpha: number = 0.8
+  alpha: number = 0.8,
+  centerPoint: Point = { x: 0, y: 0 },
+  time: number = 0
 ): void => {
-  const epicycles = generateEpicycles(components)
+  const epicycles = generateEpicycles(components, centerPoint, time)
   
   epicycles.forEach((epicycle) => {
     const center = mathToCanvas(epicycle.center, width, height)
@@ -282,28 +284,27 @@ export const drawFourierCirclesFromFrame = (
 }
 
 /**
- * Draw Fourier path
+ * Draw Fourier path (sampled over one period)
  */
 export const drawFourierPath = (
   ctx: CanvasRenderingContext2D,
   components: FourierComponent[],
   width: number,
   height: number,
-  color: string = '#e17055'
+  color: string = '#e17055',
+  centerPoint: Point = { x: 0, y: 0 },
+  samples: number = 128,
+  maxComponents: number = 50
 ): void => {
-  const path = generateFourierPath(components)
-  
-  if (path.length < 2) return
-  
+  if (components.length < 1) return
   ctx.beginPath()
-  const firstPoint = mathToCanvas(path[0], width, height)
-  ctx.moveTo(firstPoint.x, firstPoint.y)
-  
-  for (let i = 1; i < path.length; i++) {
-    const point = mathToCanvas(path[i], width, height)
-    ctx.lineTo(point.x, point.y)
+  for (let i = 0; i <= samples; i++) {
+    const t = (i / samples) * 2 * Math.PI
+    const p = generateFourierPath(components, centerPoint, t, maxComponents)
+    const canvasPoint = mathToCanvas(p, width, height)
+    if (i === 0) ctx.moveTo(canvasPoint.x, canvasPoint.y)
+    else ctx.lineTo(canvasPoint.x, canvasPoint.y)
   }
-  
   ctx.strokeStyle = color
   ctx.lineWidth = 2
   ctx.stroke()

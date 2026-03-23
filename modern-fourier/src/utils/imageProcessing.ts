@@ -549,7 +549,6 @@ const extractSVGPaths = async (file: File): Promise<Point[]> => {
         if (allPoints.length === 0) {
           const rects = svgDoc.querySelectorAll('rect')
           const circles = svgDoc.querySelectorAll('circle')
-          const ellipses = svgDoc.querySelectorAll('ellipse')
           
           // Convert basic shapes to points
           rects.forEach(rect => {
@@ -583,7 +582,7 @@ const extractSVGPaths = async (file: File): Promise<Point[]> => {
         }
         
         // Scale SVG points to our coordinate system (90% of canvas)
-        const scaledPoints = scaleContoursToCanvas([allPoints], 1000, 1000)[0] || []
+        const scaledPoints = scaleContoursToCanvas([allPoints], 1000, 1000)
         resolve(scaledPoints)
       } catch (error) {
         reject(error)

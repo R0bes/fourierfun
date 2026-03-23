@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { Settings, CurveData } from '../types'
+import { Settings, CurveData, Machine } from '../types'
 
 interface MenuProps {
   settings: Settings
   curveData: CurveData
+  machines: Machine[]
+  activeMachineId: string
+  activeMachine: Machine | null
+  profileNames: string[]
+  isRecording: boolean
   onUpdateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void
   onClearCurve: () => void
   onConfigureCurve: () => void
@@ -13,11 +18,27 @@ interface MenuProps {
   onLoadImage: (file: File) => void
   onProcessImage: () => void
   onExtractPoints: () => void
+  onCreateMachine: () => void
+  onDeleteMachine: (id: string) => void
+  onRenameMachine: (id: string, name: string) => void
+  onSetActiveMachine: (id: string) => void
+  onUpdateMachineColors: (id: string, colors: Partial<Machine['colors']>) => void
+  onUpdateMachineAlphas: (id: string, alphas: Partial<Machine['alphas']>) => void
+  onSaveProfile: (name: string) => void
+  onLoadProfile: (name: string) => void
+  onDeleteProfile: (name: string) => void
+  onStartRecording: () => void
+  onStopRecording: () => void
 }
 
 export const Menu: React.FC<MenuProps> = ({
   settings,
   curveData,
+  machines,
+  activeMachineId,
+  activeMachine,
+  profileNames,
+  isRecording,
   onUpdateSetting,
   onClearCurve,
   onConfigureCurve,
@@ -26,9 +47,22 @@ export const Menu: React.FC<MenuProps> = ({
   onNextPhase,
   onLoadImage,
   onProcessImage,
-  onExtractPoints
+  onExtractPoints,
+  onCreateMachine,
+  onDeleteMachine,
+  onRenameMachine,
+  onSetActiveMachine,
+  onUpdateMachineColors,
+  onUpdateMachineAlphas,
+  onSaveProfile,
+  onLoadProfile,
+  onDeleteProfile,
+  onStartRecording,
+  onStopRecording
 }) => {
   const [activeTab, setActiveTab] = useState<'phase1' | 'phase2' | 'phase3'>('phase1')
+  const [profileName, setProfileName] = useState('')
+  const [profileToLoad, setProfileToLoad] = useState('')
 
   // Automatically switch tabs based on phase
   useEffect(() => {
@@ -185,6 +219,200 @@ export const Menu: React.FC<MenuProps> = ({
             <span className="button-text">→</span>
             <span className="button-border"></span>
           </button>
+        </div>
+
+        {/* Machines */}
+        <div className="digital-frame circuit-border" style={{ borderColor: phaseColor + '40', marginBottom: '24px', padding: '16px' }}>
+          <h3 style={{ fontFamily: 'Orbitron, monospace', fontSize: '16px', color: phaseColor, marginTop: 0 }}>MACHINES</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ color: phaseColor, fontSize: '14px' }}>
+              Active
+              <select
+                value={activeMachineId}
+                onChange={(e) => onSetActiveMachine(e.target.value)}
+                style={{ marginLeft: '8px', width: '100%', maxWidth: '280px' }}
+              >
+                {machines.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label style={{ color: phaseColor, fontSize: '14px' }}>
+              Name
+              <input
+                type="text"
+                value={activeMachine?.name ?? ''}
+                onChange={(e) => onRenameMachine(activeMachineId, e.target.value)}
+                style={{ marginLeft: '8px', width: '100%', maxWidth: '280px' }}
+              />
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button type="button" className="cyber-button" onClick={onCreateMachine}>
+                <span className="button-text">+ Machine</span>
+              </button>
+              <button
+                type="button"
+                className="cyber-button"
+                disabled={machines.length <= 1}
+                onClick={() => onDeleteMachine(activeMachineId)}
+              >
+                <span className="button-text">Delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Colors (active machine) */}
+        {activeMachine && (
+          <div className="digital-frame circuit-border" style={{ borderColor: phaseColor + '40', marginBottom: '24px', padding: '16px' }}>
+            <h3 style={{ fontFamily: 'Orbitron, monospace', fontSize: '16px', color: phaseColor, marginTop: 0 }}>COLORS / ALPHA</h3>
+            {(
+              [
+                ['circles', 'Circles'],
+                ['amplitudes', 'Amplitudes'],
+                ['trail', 'Trail'],
+                ['path', 'Path'],
+                ['drawn', 'Drawn'],
+                ['glow', 'Glow'],
+                ['uniformPoints', 'Uniform'],
+                ['centerOfMass', 'Center']
+              ] as const
+            ).map(([key, label]) => (
+              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                <span style={{ color: phaseColor, width: '100px', fontSize: '13px' }}>{label}</span>
+                <input
+                  type="color"
+                  value={activeMachine.colors[key] as string}
+                  onChange={(e) => onUpdateMachineColors(activeMachineId, { [key]: e.target.value } as never)}
+                />
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={activeMachine.alphas[key as keyof typeof activeMachine.alphas] ?? 1}
+                  onChange={(e) =>
+                    onUpdateMachineAlphas(activeMachineId, { [key]: parseFloat(e.target.value) } as never)
+                  }
+                  style={{ flex: 1, minWidth: '120px' }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Profiles */}
+        <div className="digital-frame circuit-border" style={{ borderColor: phaseColor + '40', marginBottom: '24px', padding: '16px' }}>
+          <h3 style={{ fontFamily: 'Orbitron, monospace', fontSize: '16px', color: phaseColor, marginTop: 0 }}>PROFILES</h3>
+          <input
+            type="text"
+            placeholder="Profile name"
+            value={profileName}
+            onChange={(e) => setProfileName(e.target.value)}
+            style={{ width: '100%', marginBottom: '8px' }}
+          />
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+            <button type="button" className="cyber-button" onClick={() => onSaveProfile(profileName || 'default')}>
+              <span className="button-text">Save</span>
+            </button>
+            <select value={profileToLoad} onChange={(e) => setProfileToLoad(e.target.value)} style={{ flex: 1, minWidth: '120px' }}>
+              <option value="">Load…</option>
+              {profileNames.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+            <button type="button" className="cyber-button" onClick={() => profileToLoad && onLoadProfile(profileToLoad)}>
+              <span className="button-text">Load</span>
+            </button>
+            <button type="button" className="cyber-button" onClick={() => profileToLoad && onDeleteProfile(profileToLoad)}>
+              <span className="button-text">Delete</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Grid */}
+        <div className="digital-frame circuit-border" style={{ borderColor: phaseColor + '40', marginBottom: '24px', padding: '16px' }}>
+          <h3 style={{ fontFamily: 'Orbitron, monospace', fontSize: '16px', color: phaseColor, marginTop: 0 }}>GRID</h3>
+          <label style={{ color: phaseColor, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input type="checkbox" checked={settings.showGrid} onChange={(e) => onUpdateSetting('showGrid', e.target.checked)} />
+            Show grid
+          </label>
+          <label style={{ color: phaseColor, display: 'block', marginTop: '8px' }}>
+            Cell size {settings.gridCellSize}
+            <input
+              type="range"
+              min={8}
+              max={48}
+              value={settings.gridCellSize}
+              onChange={(e) => onUpdateSetting('gridCellSize', Number(e.target.value))}
+              style={{ width: '100%' }}
+            />
+          </label>
+          <label style={{ color: phaseColor, display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+            <input type="checkbox" checked={settings.gridRainbowMode} onChange={(e) => onUpdateSetting('gridRainbowMode', e.target.checked)} />
+            Rainbow
+          </label>
+          <label style={{ color: phaseColor, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input type="checkbox" checked={settings.gridParticleSystem} onChange={(e) => onUpdateSetting('gridParticleSystem', e.target.checked)} />
+            Particles
+          </label>
+        </div>
+
+        {/* Overlays */}
+        <div className="digital-frame circuit-border" style={{ borderColor: phaseColor + '40', marginBottom: '24px', padding: '16px' }}>
+          <h3 style={{ fontFamily: 'Orbitron, monospace', fontSize: '16px', color: phaseColor, marginTop: 0 }}>OVERLAYS</h3>
+          <label style={{ color: phaseColor, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="checkbox"
+              checked={settings.showFrequencySpectrum}
+              onChange={(e) => onUpdateSetting('showFrequencySpectrum', e.target.checked)}
+            />
+            Frequency spectrum
+          </label>
+          <label style={{ color: phaseColor, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input type="checkbox" checked={settings.showPhaseDiagram} onChange={(e) => onUpdateSetting('showPhaseDiagram', e.target.checked)} />
+            Phase diagram
+          </label>
+        </div>
+
+        {/* Recording */}
+        <div className="digital-frame circuit-border" style={{ borderColor: phaseColor + '40', marginBottom: '24px', padding: '16px' }}>
+          <h3 style={{ fontFamily: 'Orbitron, monospace', fontSize: '16px', color: phaseColor, marginTop: 0 }}>RECORDING (GIF)</h3>
+          <label style={{ color: phaseColor, display: 'block' }}>
+            Duration (ms) {settings.recordingDurationMs}
+            <input
+              type="range"
+              min={1000}
+              max={15000}
+              step={500}
+              value={settings.recordingDurationMs}
+              onChange={(e) => onUpdateSetting('recordingDurationMs', Number(e.target.value))}
+              style={{ width: '100%' }}
+            />
+          </label>
+          <label style={{ color: phaseColor, display: 'block', marginTop: '8px' }}>
+            FPS {settings.recordingFrameRate}
+            <input
+              type="range"
+              min={5}
+              max={60}
+              value={settings.recordingFrameRate}
+              onChange={(e) => onUpdateSetting('recordingFrameRate', Number(e.target.value))}
+              style={{ width: '100%' }}
+            />
+          </label>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+            <button type="button" className="cyber-button" disabled={isRecording} onClick={onStartRecording}>
+              <span className="button-text">Start</span>
+            </button>
+            <button type="button" className="cyber-button" disabled={!isRecording} onClick={onStopRecording}>
+              <span className="button-text">Stop &amp; export</span>
+            </button>
+          </div>
         </div>
 
         {/* Status Info */}

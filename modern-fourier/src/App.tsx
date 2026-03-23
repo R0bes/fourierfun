@@ -1,14 +1,53 @@
-import React from 'react'
+import React, { useCallback, useRef } from 'react'
 import { DrawingCanvas } from './components/DrawingCanvas'
 import { Menu } from './components/Menu'
-import { useCurve } from './hooks/useCurve'
+import { useMachines } from './hooks/useMachines'
 import { useSettings } from './hooks/useSettings'
 import { useDragDrop } from './hooks/useDragDrop'
+import { useRecording } from './hooks/useRecording'
+import { saveProfileToStorage, loadProfilesMap, deleteProfileFromStorage, type ProfileSnapshot } from './utils/profiles'
 
 function App() {
-  const { curveData, addPoint, addLinePoints, closeCurve, configureCurve, startCurve, updatePoint, insertPoint, deletePoint, updateUniformPoints, updateCenterOfMass, updateCenterOfMassAutomatically, initializeCenterOfMass, startFourier, stopFourier, updateAnimationTime, updateAnimationStep, clearCurve, goToDrawPhase, loadImage, processImage, extractPointsFromProcessedImage } = useCurve()
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const {
+    curveData,
+    machines,
+    activeMachineId,
+    activeMachine,
+    addPoint,
+    addLinePoints,
+    closeCurve,
+    configureCurve,
+    startCurve,
+    updatePoint,
+    insertPoint,
+    deletePoint,
+    updateUniformPoints,
+    updateCenterOfMass,
+    updateCenterOfMassAutomatically,
+    initializeCenterOfMass,
+    startFourier,
+    stopFourier,
+    updateAnimationTime,
+    updateAnimationStep,
+    clearCurve,
+    goToDrawPhase,
+    loadImage,
+    processImage,
+    extractPointsFromProcessedImage,
+    createMachine,
+    deleteMachine,
+    renameMachine,
+    setActiveMachine,
+    updateMachineColors,
+    updateMachineAlphas,
+    replaceMachinesState,
+    machineState
+  } = useMachines()
+
   const { settings, updateSetting } = useSettings()
   const { dragState, startDraggingCenter, stopDraggingCenter, toggleDraggingPoint, stopAllDragging } = useDragDrop()
+  const { isRecording, startRecording, stopRecording } = useRecording()
 
   const handleCloseCurve = () => {
     closeCurve(settings.autoCalculateCenter)
@@ -19,9 +58,7 @@ function App() {
   }
 
   const handleAddLinePoints = (points: { x: number; y: number }[]) => {
-    // Add all points from the line at once
     addLinePoints(points)
-    // Update uniform points and center of mass after adding line points
     updateUniformPoints(settings.numUniformPoints, settings.autoCalculateCenter)
     updateCenterOfMassAutomatically(settings.autoCalculateCenter)
   }
@@ -45,7 +82,7 @@ function App() {
   }
 
   const handleUpdateCenterOfMass = (point: { x: number; y: number }) => {
-    updateCenterOfMass(false, point) // Don't auto-calculate when manually dragging
+    updateCenterOfMass(false, point)
   }
 
   const handleInitializeCenterOfMass = () => {
@@ -70,53 +107,42 @@ function App() {
 
   const handlePreviousPhase = () => {
     if (curveData.isCurveFixed) {
-      // Run -> Config
-      // Stop animation and go back to config
       stopFourier()
     } else if (curveData.isCurveConfigured) {
-      // Config -> Draw
-      // Go back to draw phase
       goToDrawPhase()
     }
-    // No going back from draw phase (it's the first phase)
   }
 
   const handleNextPhase = () => {
     if (!curveData.isCurveConfigured) {
-      // Draw -> Config (only if curve is closed)
       if (curveData.isCurveClosed) {
         handleConfigureCurve()
       }
     } else if (!curveData.isCurveFixed) {
-      // Config -> Run
       handleStartCurve()
     }
   }
 
-  // Show legend when phase changes
   React.useEffect(() => {
     updateSetting('legendVisible', true)
   }, [curveData.isCurveClosed, curveData.isCurveFixed])
 
-  const handleUpdateSetting = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
-    updateSetting(key, value)
-    
-    // Update uniform points when numUniformPoints changes
-    if (key === 'numUniformPoints') {
-      updateUniformPoints(value as number, settings.autoCalculateCenter)
-      updateCenterOfMassAutomatically(settings.autoCalculateCenter)
-    }
-    
-    // Update center of mass when autoCalculateCenter changes
-    if (key === 'autoCalculateCenter') {
-      updateCenterOfMassAutomatically(value as boolean)
-    }
-    
-    // Process image when image processing settings change
-    if (key.startsWith('image')) {
-      processImage({ ...settings, [key]: value })
-    }
-  }
+  const handleUpdateSetting = useCallback(
+    <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => {
+      updateSetting(key, value)
+      if (key === 'numUniformPoints') {
+        updateUniformPoints(value as number, settings.autoCalculateCenter)
+        updateCenterOfMassAutomatically(settings.autoCalculateCenter)
+      }
+      if (key === 'autoCalculateCenter') {
+        updateCenterOfMassAutomatically(value as boolean)
+      }
+      if (key.startsWith('image')) {
+        processImage({ ...settings, [key]: value })
+      }
+    },
+    [updateSetting, settings, updateUniformPoints, updateCenterOfMassAutomatically, processImage]
+  )
 
   const handleLoadImage = (file: File) => {
     loadImage(file)
@@ -129,90 +155,156 @@ function App() {
   const handleExtractPoints = () => {
     const points = extractPointsFromProcessedImage()
     if (points.length > 0) {
-      // Use the addLinePoints function to create curve from extracted points
       addLinePoints(points)
     }
   }
 
-  // Determine current phase for CSS class
   const getPhaseClass = () => {
     if (!curveData.isCurveClosed) {
-      return 'phase-1-scene' // Draw phase (no points yet)
+      return 'phase-1-scene'
     } else if (!curveData.isCurveConfigured) {
-      return 'phase-1-scene' // Still draw phase (but curve is closed)
+      return 'phase-1-scene'
     } else if (!curveData.isCurveFixed) {
-      return 'phase-2-scene' // Config phase
+      return 'phase-2-scene'
     } else {
-      return 'phase-3-scene' // Run phase
+      return 'phase-3-scene'
     }
   }
 
+  const handleSaveProfile = useCallback(
+    (name: string) => {
+      const snapshot: ProfileSnapshot = {
+        ...machineState,
+        settings: { ...settings }
+      }
+      saveProfileToStorage(name.trim(), snapshot)
+    },
+    [machineState, settings]
+  )
+
+  const handleLoadProfile = useCallback(
+    (name: string) => {
+      const map = loadProfilesMap()
+      const snap = map[name]
+      if (!snap) return
+      const { settings: savedSettings, machines, activeMachineId, nextMachineSeq } = snap
+      replaceMachinesState({ machines, activeMachineId, nextMachineSeq })
+      ;(Object.keys(savedSettings) as (keyof typeof savedSettings)[]).forEach((key) => {
+        updateSetting(key, savedSettings[key] as never)
+      })
+    },
+    [replaceMachinesState, updateSetting]
+  )
+
+  const handleDeleteProfile = useCallback((name: string) => {
+    deleteProfileFromStorage(name)
+  }, [])
+
+  const handleStartRecording = useCallback(() => {
+    const el = canvasRef.current
+    if (!el) return
+    startRecording(el, settings.recordingDurationMs, settings.recordingFrameRate)
+  }, [startRecording, settings.recordingDurationMs, settings.recordingFrameRate])
+
+  const handleStopRecording = useCallback(() => {
+    stopRecording(canvasRef.current, settings.recordingFrameRate)
+  }, [stopRecording, settings.recordingFrameRate])
+
+  const profileNames = Object.keys(loadProfilesMap())
+
   return (
-    <div className={getPhaseClass()} style={{
-      display: 'flex',
-      height: '100vh',
-      padding: '20px',
-      gap: '20px',
-      position: 'relative'
-    }}>
-      {/* Drawing Canvas - Konva Version */}
-      <div style={{ 
-        flex: 1,
+    <div
+      className={getPhaseClass()}
+      style={{
+        display: 'flex',
+        height: '100vh',
+        padding: '20px',
+        gap: '20px',
         position: 'relative'
-      }}>
-        <div className="glass-container" style={{
-          width: '100%',
-          height: '100%',
-          padding: '0px',
+      }}
+    >
+      <div
+        style={{
+          flex: 1,
           position: 'relative'
-        }}>
-                      <DrawingCanvas
-                        curveData={curveData}
-                        settings={settings}
-                        dragState={dragState}
-                        onAddPoint={handleAddPoint}
-                        onCloseCurve={handleCloseCurve}
-                        onUpdatePoint={handleUpdatePoint}
-                        onInsertPoint={handleInsertPoint}
-                        onDeletePoint={handleDeletePoint}
-                        onUpdateCenterOfMass={handleUpdateCenterOfMass}
-                        onInitializeCenterOfMass={handleInitializeCenterOfMass}
-                        onStartDraggingCenter={startDraggingCenter}
-                        onStopDraggingCenter={stopDraggingCenter}
-                        onToggleDraggingPoint={toggleDraggingPoint}
-                        onStopAllDragging={stopAllDragging}
-                        onUpdateSetting={handleUpdateSetting}
-                        onConfigureCurve={handleConfigureCurve}
-                        onStartCurve={handleStartCurve}
-                        onStartFourier={handleStartFourier}
-                        onStopFourier={handleStopFourier}
-                        onUpdateAnimationTime={updateAnimationTime}
-                        onUpdateAnimationStep={updateAnimationStep}
-                        onAddLinePoints={handleAddLinePoints}
-                      />
+        }}
+      >
+        <div
+          className="glass-container"
+          style={{
+            width: '100%',
+            height: '100%',
+            padding: '0px',
+            position: 'relative'
+          }}
+        >
+          <DrawingCanvas
+            ref={canvasRef}
+            curveData={curveData}
+            settings={settings}
+            activeMachine={activeMachine}
+            dragState={dragState}
+            onAddPoint={handleAddPoint}
+            onCloseCurve={handleCloseCurve}
+            onUpdatePoint={handleUpdatePoint}
+            onInsertPoint={handleInsertPoint}
+            onDeletePoint={handleDeletePoint}
+            onUpdateCenterOfMass={handleUpdateCenterOfMass}
+            onInitializeCenterOfMass={handleInitializeCenterOfMass}
+            onStartDraggingCenter={startDraggingCenter}
+            onStopDraggingCenter={stopDraggingCenter}
+            onToggleDraggingPoint={toggleDraggingPoint}
+            onStopAllDragging={stopAllDragging}
+            onUpdateSetting={handleUpdateSetting}
+            onConfigureCurve={handleConfigureCurve}
+            onStartCurve={handleStartCurve}
+            onStartFourier={handleStartFourier}
+            onStopFourier={handleStopFourier}
+            onUpdateAnimationTime={updateAnimationTime}
+            onUpdateAnimationStep={updateAnimationStep}
+            onAddLinePoints={handleAddLinePoints}
+          />
         </div>
       </div>
 
-      {/* Menu Panel */}
-      <div className="glass-container" style={{
-        width: '480px', // 50% breiter (320px * 1.5)
-        height: 'fit-content',
-        maxHeight: 'calc(100vh - 40px)',
-        overflowY: 'auto'
-      }}>
-                    <Menu
-                      settings={settings}
-                      curveData={curveData}
-                      onUpdateSetting={handleUpdateSetting}
-                      onClearCurve={clearCurve}
-                      onConfigureCurve={handleConfigureCurve}
-                      onStartCurve={handleStartCurve}
-                      onPreviousPhase={handlePreviousPhase}
-                      onNextPhase={handleNextPhase}
-                      onLoadImage={handleLoadImage}
-                      onProcessImage={handleProcessImage}
-                      onExtractPoints={handleExtractPoints}
-                    />
+      <div
+        className="glass-container"
+        style={{
+          width: '480px',
+          height: 'fit-content',
+          maxHeight: 'calc(100vh - 40px)',
+          overflowY: 'auto'
+        }}
+      >
+        <Menu
+          settings={settings}
+          curveData={curveData}
+          machines={machines}
+          activeMachineId={activeMachineId}
+          activeMachine={activeMachine}
+          profileNames={profileNames}
+          isRecording={isRecording}
+          onUpdateSetting={handleUpdateSetting}
+          onClearCurve={clearCurve}
+          onConfigureCurve={handleConfigureCurve}
+          onStartCurve={handleStartCurve}
+          onPreviousPhase={handlePreviousPhase}
+          onNextPhase={handleNextPhase}
+          onLoadImage={handleLoadImage}
+          onProcessImage={handleProcessImage}
+          onExtractPoints={handleExtractPoints}
+          onCreateMachine={() => createMachine()}
+          onDeleteMachine={deleteMachine}
+          onRenameMachine={renameMachine}
+          onSetActiveMachine={setActiveMachine}
+          onUpdateMachineColors={updateMachineColors}
+          onUpdateMachineAlphas={updateMachineAlphas}
+          onSaveProfile={handleSaveProfile}
+          onLoadProfile={handleLoadProfile}
+          onDeleteProfile={handleDeleteProfile}
+          onStartRecording={handleStartRecording}
+          onStopRecording={handleStopRecording}
+        />
       </div>
     </div>
   )

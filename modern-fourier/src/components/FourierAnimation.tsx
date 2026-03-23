@@ -1,7 +1,5 @@
 import React, { useEffect, useRef } from 'react'
 import { CurveData } from '../types'
-import { generateFourierPath, generateEpicycles } from '../utils/fourier'
-import { mathToCanvas } from '../utils/canvas'
 
 interface FourierAnimationProps {
   curveData: CurveData
@@ -29,7 +27,7 @@ export const FourierAnimation: React.FC<FourierAnimationProps> = ({
 
       const elapsed = (currentTime - startTimeRef.current) / 1000 // Convert to seconds
       const animationSpeed = 0.5 // Adjust speed as needed
-      const time = elapsed * animationSpeed
+      void (elapsed * animationSpeed)
 
       // Update animation time in parent component
       // This would need to be passed as a prop or handled differently

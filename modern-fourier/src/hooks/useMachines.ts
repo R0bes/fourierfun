@@ -1,10 +1,16 @@
-import { useState, useCallback } from 'react'
-import { Point, CurveData } from '../types'
+import { useState, useCallback, useMemo } from 'react'
+import { Point, CurveData, Machine, MultiMachineState, Settings } from '../types'
 import { generateCubicBezierCurve, generateUniformPointsOnCurve, calculateCenterOfMass, iterativelyReduceLinePoints, calculateCurveAnalysis } from '../utils/math'
 import { computeFourierDFT } from '../utils/fourier'
 import { loadImageForBackground } from '../utils/imageProcessing'
-import { Settings } from '../types'
 import { generateAnimation } from '../utils/curveAnimation'
+import { emptyCurveData } from '../utils/emptyCurveData'
+import {
+  createRandomMachineColors,
+  createDefaultMachineAlphas,
+  MachineColors,
+  MachineAlphas
+} from '../utils/colorPalette'
 
 // Helper function for scaling contours (moved from imageProcessing.ts)
 const scaleContoursToCanvas = (contours: Point[][], imageWidth: number, imageHeight: number): Point[] => {
@@ -28,27 +34,43 @@ const scaleContoursToCanvas = (contours: Point[][], imageWidth: number, imageHei
   }))
 }
 
-export const useCurve = () => {
-  const [curveData, setCurveData] = useState<CurveData>({
-    drawnPoints: [],
-    completeCurve: [],
-    uniformPoints: [],
-    centerOfMass: null, // No center of mass until curve is closed
-    isCurveClosed: false,
-    isCurveFixed: false,
-    isCurveConfigured: false, // New phase: Config
-    fourierComponents: [],
-    animationTime: 0,
-    fourierAnimation: [],
-    currentAnimationStep: 0,
-    animationSteps: 100,
-    curveAnalysis: null,
-    backgroundImage: null,
-    processedImage: null
-  })
+function updateActiveCurve(state: MultiMachineState, updater: (c: CurveData) => CurveData): MultiMachineState {
+  const i = state.machines.findIndex(m => m.id === state.activeMachineId)
+  if (i === -1) return state
+  const newCurve = updater(state.machines[i].curveData)
+  const machines = [...state.machines]
+  machines[i] = { ...machines[i], curveData: newCurve }
+  return { ...state, machines }
+}
+
+function initialMultiMachineState(): MultiMachineState {
+  const colors = createRandomMachineColors()
+  const alphas = createDefaultMachineAlphas()
+  const machine: Machine = {
+    id: 'machine_1',
+    name: 'Machine 1',
+    curveData: emptyCurveData(),
+    colors,
+    alphas
+  }
+  return { machines: [machine], activeMachineId: machine.id, nextMachineSeq: 2 }
+}
+
+export const useMachines = () => {
+  const [machineState, setMachineState] = useState<MultiMachineState>(initialMultiMachineState)
+
+  const curveData = useMemo(() => {
+    const m = machineState.machines.find(x => x.id === machineState.activeMachineId)
+    return m?.curveData ?? emptyCurveData()
+  }, [machineState])
+
+  const activeMachine = useMemo(
+    () => machineState.machines.find(m => m.id === machineState.activeMachineId) ?? null,
+    [machineState]
+  )
 
   const addPoint = useCallback((point: Point) => {
-    setCurveData(prev => {
+    setMachineState(ms => updateActiveCurve(ms, prev => {
       const newDrawnPoints = [...prev.drawnPoints, point]
       
       // If this is the first point, automatically close the curve
@@ -76,11 +98,11 @@ export const useCurve = () => {
         centerOfMass: newCenterOfMass,
         isCurveClosed: newIsCurveClosed
       }
-    })
+    }))
   }, [])
 
   const addLinePoints = useCallback((points: Point[]) => {
-    setCurveData(prev => {
+    setMachineState(ms => updateActiveCurve(ms, prev => {
       if (points.length === 0) return prev
       
       // Iteratively reduce points to find the optimal balance between smoothness and detail
@@ -109,11 +131,11 @@ export const useCurve = () => {
         isCurveClosed: newIsCurveClosed,
         curveAnalysis: curveAnalysis
       }
-    })
+    }))
   }, [])
 
   const closeCurve = useCallback((autoCalculateCenter: boolean) => {
-    setCurveData(prev => {
+    setMachineState(ms => updateActiveCurve(ms, prev => {
       if (prev.drawnPoints.length < 1) return prev
 
       // Generate closed curve without duplicating the first point
@@ -133,11 +155,11 @@ export const useCurve = () => {
         isCurveClosed: true,
         isCurveFixed: false // Stay in Phase 2 (EDIT) after closing
       }
-    })
+    }))
   }, [])
 
   const configureCurve = useCallback(() => {
-    setCurveData(prev => {
+    setMachineState(ms => updateActiveCurve(ms, prev => {
       if (!prev.isCurveClosed || prev.uniformPoints.length === 0) {
         return prev // Can't configure if curve is not closed
       }
@@ -150,11 +172,11 @@ export const useCurve = () => {
         isCurveConfigured: true,
         fourierComponents
       }
-    })
+    }))
   }, [])
 
   const startCurve = useCallback(() => {
-    setCurveData(prev => {
+    setMachineState(ms => updateActiveCurve(ms, prev => {
       if (!prev.isCurveConfigured || prev.fourierComponents.length === 0) {
         return prev // Can't start if curve is not configured
       }
@@ -169,31 +191,15 @@ export const useCurve = () => {
         currentAnimationStep: 0,
         animationSteps: 100
       }
-    })
+    }))
   }, [])
 
   const clearCurve = useCallback(() => {
-    setCurveData({
-      drawnPoints: [],
-      completeCurve: [],
-      uniformPoints: [],
-      centerOfMass: null, // No center of mass until curve is closed
-      isCurveClosed: false,
-      isCurveFixed: false,
-      isCurveConfigured: false, // Reset config phase
-      fourierComponents: [],
-      animationTime: 0,
-      fourierAnimation: [],
-      currentAnimationStep: 0,
-      animationSteps: 100,
-      curveAnalysis: null,
-      backgroundImage: null,
-      processedImage: null
-    })
+    setMachineState(ms => updateActiveCurve(ms, () => emptyCurveData()))
   }, [])
 
   const updatePoint = useCallback((index: number, newPoint: Point) => {
-    setCurveData(prev => {
+    setMachineState(ms => updateActiveCurve(ms, prev => {
       const newDrawnPoints = [...prev.drawnPoints]
       newDrawnPoints[index] = newPoint
       
@@ -217,11 +223,11 @@ export const useCurve = () => {
         uniformPoints: newUniformPoints,
         centerOfMass: newCenterOfMass
       }
-    })
+    }))
   }, [])
 
   const insertPoint = useCallback((index: number, point: Point) => {
-    setCurveData(prev => {
+    setMachineState(ms => updateActiveCurve(ms, prev => {
       const newDrawnPoints = [...prev.drawnPoints]
       newDrawnPoints.splice(index, 0, point) // Insert at specific position
       
@@ -245,11 +251,11 @@ export const useCurve = () => {
         uniformPoints: newUniformPoints,
         centerOfMass: newCenterOfMass
       }
-    })
+    }))
   }, [])
 
   const updateUniformPoints = useCallback((numPoints: number, autoCalculateCenter: boolean = true) => {
-    setCurveData(prev => {
+    setMachineState(ms => updateActiveCurve(ms, prev => {
       if (prev.completeCurve.length < 1) return prev
       
       const uniformPoints = generateUniformPointsOnCurve(prev.completeCurve, numPoints)
@@ -264,11 +270,11 @@ export const useCurve = () => {
         uniformPoints,
         centerOfMass
       }
-    })
+    }))
   }, [])
 
   const updateCenterOfMass = useCallback((autoCalculate: boolean, newCenter?: Point) => {
-    setCurveData(prev => {
+    setMachineState(ms => updateActiveCurve(ms, prev => {
       if (newCenter) {
         // When manually moving center, recalculate Fourier if curve is fixed
         if (prev.isCurveFixed && prev.uniformPoints.length > 0) {
@@ -312,11 +318,11 @@ export const useCurve = () => {
         ...prev,
         centerOfMass
       }
-    })
+    }))
   }, [])
 
   const updateCenterOfMassAutomatically = useCallback((autoCalculateCenter: boolean) => {
-    setCurveData(prev => {
+    setMachineState(ms => updateActiveCurve(ms, prev => {
       if (!autoCalculateCenter) {
         // If auto-calculate is disabled, keep center at current position
         return prev
@@ -345,20 +351,20 @@ export const useCurve = () => {
         ...prev,
         centerOfMass
       }
-    })
+    }))
   }, [])
 
   const initializeCenterOfMass = useCallback(() => {
-    setCurveData(prev => ({
+    setMachineState(ms => updateActiveCurve(ms, prev => ({
       ...prev,
       centerOfMass: { x: 0, y: 0 }, // Start at mathematical origin (0,0)
       fourierComponents: [],
       animationTime: 0
-    }))
+    })))
   }, [])
 
   const startFourier = useCallback(() => {
-    setCurveData(prev => {
+    setMachineState(ms => updateActiveCurve(ms, prev => {
       // Compute Fourier components from uniform points relative to center of mass
       const fourierComponents = computeFourierDFT(prev.uniformPoints, prev.centerOfMass || { x: 0, y: 0 })
       
@@ -373,29 +379,26 @@ export const useCurve = () => {
         fourierAnimation,
         currentAnimationStep: 0
       }
-    })
+    }))
   }, [])
 
   const stopFourier = useCallback(() => {
-    setCurveData(prev => ({
+    setMachineState(ms => updateActiveCurve(ms, prev => ({
       ...prev,
       isCurveFixed: false,
       fourierComponents: [],
       fourierAnimation: [],
       animationTime: 0,
       currentAnimationStep: 0
-    }))
+    })))
   }, [])
 
   const deletePoint = useCallback((index: number) => {
-    console.log('🔴 DELETE POINT aufgerufen! Index:', index, 'Zeitstempel:', new Date().toISOString())
-    setCurveData(prev => {
+    setMachineState(ms => updateActiveCurve(ms, prev => {
       if (prev.drawnPoints.length <= 1) {
-        console.log('🔴 DELETE POINT abgebrochen - nur 1 Punkt vorhanden')
         return prev // Don't delete if we have only 1 point
       }
       
-      console.log('🔴 DELETE POINT wird ausgeführt - Punkt wird gelöscht')
       const newDrawnPoints = [...prev.drawnPoints]
       newDrawnPoints.splice(index, 1)
       
@@ -419,36 +422,36 @@ export const useCurve = () => {
         uniformPoints: newUniformPoints,
         centerOfMass: newCenterOfMass
       }
-    })
+    }))
   }, [])
 
   const updateAnimationTime = useCallback((time: number) => {
-    setCurveData(prev => ({
+    setMachineState(ms => updateActiveCurve(ms, prev => ({
       ...prev,
       animationTime: time
-    }))
+    })))
   }, [])
 
   const updateAnimationStep = useCallback((step: number) => {
-    setCurveData(prev => ({
+    setMachineState(ms => updateActiveCurve(ms, prev => ({
       ...prev,
       currentAnimationStep: step % prev.animationSteps
-    }))
+    })))
   }, [])
 
   const goToEditPhase = useCallback(() => {
-    setCurveData(prev => ({
+    setMachineState(ms => updateActiveCurve(ms, prev => ({
       ...prev,
       isCurveConfigured: false,
       isCurveFixed: false,
       fourierComponents: [],
       fourierAnimation: [],
       currentAnimationStep: 0
-    }))
+    })))
   }, [])
 
   const goToDrawPhase = useCallback(() => {
-    setCurveData(prev => ({
+    setMachineState(ms => updateActiveCurve(ms, prev => ({
       ...prev,
       isCurveClosed: false,
       isCurveConfigured: false,
@@ -460,7 +463,7 @@ export const useCurve = () => {
       fourierComponents: [],
       fourierAnimation: [],
       currentAnimationStep: 0
-    }))
+    })))
   }, [])
 
   const loadImage = useCallback(async (file: File) => {
@@ -484,7 +487,7 @@ export const useCurve = () => {
       console.log('✅ Processed image canvas created:', processedCanvas.width, 'x', processedCanvas.height)
       
       // Clear existing curve and load image
-      setCurveData(prev => {
+      setMachineState(ms => updateActiveCurve(ms, prev => {
         console.log('🔄 Updating curve data...')
         
         return {
@@ -492,7 +495,7 @@ export const useCurve = () => {
           backgroundImage: backgroundImage,
           processedImage: processedCanvas
         }
-      })
+      }))
     } catch (error) {
       console.error('❌ Error processing image:', error)
     }
@@ -606,7 +609,78 @@ export const useCurve = () => {
     return scaledPoints
   }, [curveData.processedImage])
 
+  const createMachine = useCallback((name?: string) => {
+    setMachineState(prev => {
+      const id = `machine_${prev.nextMachineSeq}`
+      const machine: Machine = {
+        id,
+        name: name || `Machine ${prev.nextMachineSeq}`,
+        curveData: emptyCurveData(),
+        colors: createRandomMachineColors(),
+        alphas: createDefaultMachineAlphas()
+      }
+      return {
+        ...prev,
+        machines: [...prev.machines, machine],
+        activeMachineId: id,
+        nextMachineSeq: prev.nextMachineSeq + 1
+      }
+    })
+  }, [])
+
+  const deleteMachine = useCallback((machineId: string) => {
+    setMachineState(prev => {
+      if (prev.machines.length <= 1) return prev
+      const machines = prev.machines.filter(m => m.id !== machineId)
+      let activeMachineId = prev.activeMachineId
+      if (machineId === activeMachineId) {
+        activeMachineId = machines[0].id
+      }
+      return { ...prev, machines, activeMachineId }
+    })
+  }, [])
+
+  const renameMachine = useCallback((machineId: string, name: string) => {
+    setMachineState(prev => ({
+      ...prev,
+      machines: prev.machines.map(m => (m.id === machineId ? { ...m, name } : m))
+    }))
+  }, [])
+
+  const setActiveMachine = useCallback((id: string) => {
+    setMachineState(prev => {
+      if (!prev.machines.some(m => m.id === id)) return prev
+      return { ...prev, activeMachineId: id }
+    })
+  }, [])
+
+  const updateMachineColors = useCallback((machineId: string, colors: Partial<MachineColors>) => {
+    setMachineState(prev => ({
+      ...prev,
+      machines: prev.machines.map(m =>
+        m.id === machineId ? { ...m, colors: { ...m.colors, ...colors } } : m
+      )
+    }))
+  }, [])
+
+  const updateMachineAlphas = useCallback((machineId: string, alphas: Partial<MachineAlphas>) => {
+    setMachineState(prev => ({
+      ...prev,
+      machines: prev.machines.map(m =>
+        m.id === machineId ? { ...m, alphas: { ...m.alphas, ...alphas } } : m
+      )
+    }))
+  }, [])
+
+  const replaceMachinesState = useCallback((payload: MultiMachineState) => {
+    setMachineState(payload)
+  }, [])
+
   return {
+    machineState,
+    machines: machineState.machines,
+    activeMachineId: machineState.activeMachineId,
+    activeMachine,
     curveData,
     addPoint,
     addLinePoints,
@@ -629,6 +703,13 @@ export const useCurve = () => {
     goToDrawPhase,
     loadImage,
     processImage,
-    extractPointsFromProcessedImage
+    extractPointsFromProcessedImage,
+    createMachine,
+    deleteMachine,
+    renameMachine,
+    setActiveMachine,
+    updateMachineColors,
+    updateMachineAlphas,
+    replaceMachinesState
   }
 }

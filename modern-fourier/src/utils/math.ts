@@ -1,4 +1,4 @@
-import { Point, BezierSegment } from '../types'
+import { Point } from '../types'
 
 /**
  * Calculate a point on a cubic Bezier curve
@@ -288,7 +288,6 @@ const calculateCurveQuality = (points: Point[]): number => {
   if (points.length < 3) return 0
   
   let totalAngleChange = 0
-  let totalDistance = 0
   let minDistance = Infinity
   let maxDistance = 0
   
@@ -299,7 +298,6 @@ const calculateCurveQuality = (points: Point[]): number => {
     
     // Calculate distance
     const dist = Math.sqrt((curr.x - prev.x) ** 2 + (curr.y - prev.y) ** 2)
-    totalDistance += dist
     minDistance = Math.min(minDistance, dist)
     maxDistance = Math.max(maxDistance, dist)
     
@@ -316,7 +314,6 @@ const calculateCurveQuality = (points: Point[]): number => {
     }
   }
   
-  const avgDistance = totalDistance / (points.length - 1)
   const avgAngleChange = totalAngleChange / (points.length - 1)
   const distanceVariation = maxDistance / minDistance
   

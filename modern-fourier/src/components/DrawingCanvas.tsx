@@ -1,12 +1,15 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react'
-import { Point, CurveData, DragState, Settings } from '../types'
-import { drawCoordinateSystem, drawCurve, drawOriginalPoints, drawUniformPoints, drawCenterOfMass, drawModeIndicator, drawFourierCircles, drawFourierPath, drawFourierTrail, drawFourierCirclesFromFrame, drawFourierPathPoint, canvasToMath, mathToCanvas, drawBackgroundImage } from '../utils/canvas'
-import { generateFourierPath } from '../utils/fourier'
+import React, { useRef, useEffect, useCallback, useState, forwardRef } from 'react'
+import { Point, CurveData, DragState, Settings, Machine } from '../types'
+import { drawCoordinateSystem, drawCurve, drawOriginalPoints, drawUniformPoints, drawCenterOfMass, drawModeIndicator, drawFourierCircles, drawFourierTrail, drawFourierCirclesFromFrame, drawFourierPathPoint, canvasToMath, mathToCanvas, drawBackgroundImage } from '../utils/canvas'
+import { GridOverlay } from '../utils/Grid'
+import { drawFrequencySpectrumOverlay, drawPhaseDiagramOverlay } from '../utils/fourierOverlays'
 
 interface DrawingCanvasProps {
   curveData: CurveData
   dragState: DragState
   settings: Settings
+  /** When set, colors/alphas override global settings for the active machine */
+  activeMachine: Machine | null
   onAddPoint: (point: Point) => void
   onCloseCurve: () => void
   onUpdatePoint: (index: number, point: Point) => void
@@ -28,31 +31,48 @@ interface DrawingCanvasProps {
   onAddLinePoints: (points: Point[]) => void
 }
 
-export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
+export const DrawingCanvas = forwardRef<HTMLCanvasElement, DrawingCanvasProps>(function DrawingCanvas(
+  {
   curveData,
   dragState,
   settings,
+  activeMachine,
   onAddPoint,
   onCloseCurve,
   onUpdatePoint,
   onInsertPoint,
   onDeletePoint,
   onUpdateCenterOfMass,
-  onInitializeCenterOfMass,
+  onInitializeCenterOfMass: _onInitializeCenterOfMass,
   onStartDraggingCenter,
-  onStopDraggingCenter,
+  onStopDraggingCenter: _onStopDraggingCenter,
   onToggleDraggingPoint,
   onStopAllDragging,
-  onUpdateSetting,
+  onUpdateSetting: _onUpdateSetting,
   onConfigureCurve,
   onStartCurve,
-  onStartFourier,
-  onStopFourier,
+  onStartFourier: _onStartFourier,
+  onStopFourier: _onStopFourier,
   onUpdateAnimationTime,
   onUpdateAnimationStep,
   onAddLinePoints
-}) => {
+  },
+  ref
+) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const gridRef = useRef<GridOverlay | null>(null)
+
+  const setCanvasRef = useCallback(
+    (node: HTMLCanvasElement | null) => {
+      ;(canvasRef as React.MutableRefObject<HTMLCanvasElement | null>).current = node
+      if (typeof ref === 'function') {
+        ref(node)
+      } else if (ref) {
+        ;(ref as React.MutableRefObject<HTMLCanvasElement | null>).current = node
+      }
+    },
+    [ref]
+  )
   const trailRef = useRef<Point[]>([])
   const onUpdateAnimationTimeRef = useRef(onUpdateAnimationTime)
   const onUpdateAnimationStepRef = useRef(onUpdateAnimationStep)
@@ -145,7 +165,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     
     // Ensure proper canvas context setup for text rendering
     ctx.setTransform(1, 0, 0, 1, 0, 0)
-    ctx.textRenderingOptimization = 'optimizeQuality'
+    ;(ctx as CanvasRenderingContext2D & { textRenderingOptimization?: string }).textRenderingOptimization =
+      'optimizeQuality'
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
     
@@ -161,6 +182,33 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     
     // Draw coordinate system first
     drawCoordinateSystem(ctx, canvas.width, canvas.height, phaseColor)
+
+    const c = activeMachine?.colors
+    const a = activeMachine?.alphas
+    const colorOriginal = c?.drawn ?? settings.colorOriginalPoints
+    const colorUniform = c?.uniformPoints ?? settings.colorUniformPoints
+    const colorCom = c?.centerOfMass ?? settings.colorCenterOfMass
+    const colorCircles = c?.circles ?? settings.colorFourierCircles
+    const colorConn = c?.amplitudes ?? settings.colorFourierConnections
+    const colorTrail = c?.trail ?? settings.colorFourierTrail
+    const colorPath = c?.path ?? settings.colorFourierPath
+    const alphaCircles = Math.min(1, settings.fourierAlpha * (a?.circles ?? 1))
+    const effTrailAlpha = a?.trail ?? 1
+    const effPathAlpha = a?.path ?? 1
+    const centerPt = curveData.centerOfMass ?? { x: 0, y: 0 }
+
+    if (settings.showGrid) {
+      if (!gridRef.current) {
+        gridRef.current = new GridOverlay(canvas.width, canvas.height, settings.gridCellSize)
+      } else {
+        gridRef.current.setCellSize(settings.gridCellSize, canvas.width, canvas.height)
+      }
+      gridRef.current.setShowGrid(true)
+      gridRef.current.setRainbowMode(settings.gridRainbowMode)
+      gridRef.current.setParticleSystem(settings.gridParticleSystem)
+      gridRef.current.update(16)
+      gridRef.current.render(ctx)
+    }
     
     // Draw background image if available
     if (curveData.backgroundImage) {
@@ -180,23 +228,29 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     
     // Draw original points
     if (settings.showPoints && curveData.drawnPoints.length > 0) {
-      drawOriginalPoints(ctx, curveData.drawnPoints, canvas.width, canvas.height, settings.colorOriginalPoints)
+      ctx.globalAlpha = a?.drawn ?? 1
+      drawOriginalPoints(ctx, curveData.drawnPoints, canvas.width, canvas.height, colorOriginal)
+      ctx.globalAlpha = 1
     }
     
     // Draw uniform points
     if (settings.showUniformPoints && curveData.uniformPoints.length > 0) {
-      drawUniformPoints(ctx, curveData.uniformPoints, canvas.width, canvas.height, settings.colorUniformPoints)
+      ctx.globalAlpha = a?.uniformPoints ?? 1
+      drawUniformPoints(ctx, curveData.uniformPoints, canvas.width, canvas.height, colorUniform)
+      ctx.globalAlpha = 1
     }
     
     // Draw center of mass
     if (settings.showCenterOfMass && curveData.centerOfMass) {
-      drawCenterOfMass(ctx, curveData.centerOfMass, canvas.width, canvas.height, settings.colorCenterOfMass)
+      ctx.globalAlpha = a?.centerOfMass ?? 1
+      drawCenterOfMass(ctx, curveData.centerOfMass, canvas.width, canvas.height, colorCom)
+      ctx.globalAlpha = 1
     }
     
     // Draw static Fourier circles in Config phase (no animation)
     if (curveData.isCurveConfigured && !curveData.isCurveFixed && curveData.fourierComponents.length > 0) {
       if (settings.showFourierCircles) {
-        drawFourierCircles(ctx, curveData.fourierComponents, canvas.width, canvas.height, settings.colorFourierCircles, settings.fourierAlpha)
+        drawFourierCircles(ctx, curveData.fourierComponents, canvas.width, canvas.height, colorCircles, alphaCircles, centerPt, 0)
       }
     }
     
@@ -208,31 +262,75 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       if (animationData && animationData.length > 0) {
         // Draw Fourier circles
         if (settings.showFourierCircles) {
-          drawFourierCirclesFromFrame(ctx, animationData, canvas.width, canvas.height, settings.colorFourierCircles, settings.fourierAlpha)
+          drawFourierCirclesFromFrame(ctx, animationData, canvas.width, canvas.height, colorCircles, alphaCircles)
         }
         
         // Draw Fourier connections
         if (settings.showFourierConnections) {
-          // This would need to be implemented in canvas.ts
+          ctx.strokeStyle = colorConn
+          ctx.globalAlpha = a?.amplitudes ?? 1
+          for (let i = 1; i < animationData.length; i++) {
+            const p0 = mathToCanvas(animationData[i - 1].position, canvas.width, canvas.height)
+            const p1 = mathToCanvas(animationData[i].position, canvas.width, canvas.height)
+            ctx.beginPath()
+            ctx.moveTo(p0.x, p0.y)
+            ctx.lineTo(p1.x, p1.y)
+            ctx.lineWidth = 1
+            ctx.stroke()
+          }
+          ctx.globalAlpha = 1
         }
         
         // Draw Fourier path point
         if (settings.showFourierPath) {
-          drawFourierPathPoint(ctx, animationData, canvas.width, canvas.height, settings.colorFourierPath)
+          ctx.globalAlpha = effPathAlpha
+          drawFourierPathPoint(ctx, animationData, canvas.width, canvas.height, colorPath)
+          ctx.globalAlpha = 1
         }
       }
     }
     
     // Draw Fourier trail
     if (settings.showFourierTrail && trailRef.current.length > 0) {
-      drawFourierTrail(ctx, trailRef.current, canvas.width, canvas.height, settings.colorFourierTrail)
+      ctx.globalAlpha = effTrailAlpha
+      drawFourierTrail(ctx, trailRef.current, canvas.width, canvas.height, colorTrail)
+      ctx.globalAlpha = 1
+    }
+
+    if (activeMachine && curveData.isCurveFixed && curveData.fourierAnimation?.length) {
+      const step = curveData.currentAnimationStep || 0
+      const frame = curveData.fourierAnimation[step]
+      const mc = activeMachine.colors
+      if (settings.showFrequencySpectrum) {
+        drawFrequencySpectrumOverlay(
+          ctx,
+          frame,
+          settings.spectrumPanelX,
+          settings.spectrumPanelY,
+          300,
+          120,
+          mc,
+          true
+        )
+      }
+      if (settings.showPhaseDiagram) {
+        drawPhaseDiagramOverlay(
+          ctx,
+          frame,
+          settings.phasePanelX,
+          settings.phasePanelY,
+          150,
+          mc,
+          true
+        )
+      }
     }
     
     // Draw current line being drawn (in line mode)
     if (settings.drawMode === 'line' && isDrawingLine) {
       drawCurrentLine(ctx, canvas)
     }
-  }, [curveData, settings, trailRef, drawCurrentLine, isDrawingLine])
+  }, [curveData, settings, activeMachine, trailRef, drawCurrentLine, isDrawingLine])
 
   // Handle mouse down - start drawing line or handle points mode
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -305,7 +403,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   }, [curveData, dragState, settings, onAddPoint, onStartDraggingCenter, onToggleDraggingPoint, onStopAllDragging, insertPointOnCurve, findClosestPointOnCurve])
 
   // Handle mouse click - only for ending drag operations
-  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleClick = useCallback((_e: React.MouseEvent<HTMLCanvasElement>) => {
     // If currently dragging, stop dragging on click
     if (dragState.isDraggingCenter || dragState.draggedPointIndex !== null) {
       onStopAllDragging()
@@ -468,7 +566,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       // Reset any transformations
       ctx.setTransform(1, 0, 0, 1, 0, 0)
       // Ensure proper text rendering
-      ctx.textRenderingOptimization = 'optimizeQuality'
+      ;(ctx as CanvasRenderingContext2D & { textRenderingOptimization?: string }).textRenderingOptimization =
+      'optimizeQuality'
       ctx.imageSmoothingEnabled = true
       ctx.imageSmoothingQuality = 'high'
     }
@@ -523,7 +622,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
   return (
     <canvas
-      ref={canvasRef}
+      ref={setCanvasRef}
       className="drawing-canvas"
       style={{
         width: '100%',
@@ -547,4 +646,4 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       tabIndex={0}
     />
   )
-}
+})

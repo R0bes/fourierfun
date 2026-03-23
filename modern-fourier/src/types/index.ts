@@ -1,3 +1,5 @@
+import type { MachineColors, MachineAlphas } from '../utils/colorPalette'
+
 export interface Point {
   x: number
   y: number
@@ -82,9 +84,39 @@ export interface Settings {
   imageEdgeDetection: 'none' | 'sobel' | 'canny' | 'laplacian'
   imageMorphology: boolean
   imageInvert: boolean
+  // Grid overlay
+  showGrid: boolean
+  gridCellSize: number
+  gridRainbowMode: boolean
+  gridParticleSystem: boolean
+  // Fourier overlays
+  showFrequencySpectrum: boolean
+  showPhaseDiagram: boolean
+  spectrumPanelX: number
+  spectrumPanelY: number
+  phasePanelX: number
+  phasePanelY: number
+  // GIF recording defaults
+  recordingDurationMs: number
+  recordingFrameRate: number
 }
 
 export interface DragState {
   isDraggingCenter: boolean
   draggedPointIndex: number | null
+}
+
+export interface Machine {
+  id: string
+  name: string
+  curveData: CurveData
+  colors: MachineColors
+  alphas: MachineAlphas
+}
+
+/** Full multi-machine app state (machines + active id + id sequence). */
+export interface MultiMachineState {
+  machines: Machine[]
+  activeMachineId: string
+  nextMachineSeq: number
 }
