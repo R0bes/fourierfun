@@ -6,10 +6,10 @@
   "homepage": "https://fourierfun.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/fourierfun.git"
+    "url": "https://github.com/R0bes/fourierfun.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/fourierfun/issues"
+    "url": "https://github.com/R0bes/fourierfun/issues"
   },
   "keywords": [
     "fourier",
