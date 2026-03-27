@@ -32,6 +32,33 @@
             height: 100vh;
             z-index: 1;
             cursor: crosshair;
+            touch-action: none;
+        }
+
+        /* Mobile: floating control to open the side panel (overlay) */
+        #mobileMenuFab {
+            display: none;
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            z-index: 1002;
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(168, 85, 247, 0.55);
+            background: rgba(24, 24, 37, 0.92);
+            color: #E9D5FF;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+        }
+
+        #mobileMenuBackdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.45);
         }
 
         /* Toggle Button - Entfernt, da Menü jetzt fest ist */
@@ -512,6 +539,31 @@
             right: auto;
             left: 0;
         }
+
+        @media (max-width: 900px) {
+            .right-panel {
+                width: min(320px, 100vw);
+                transform: translateX(100%);
+                box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
+            }
+            .right-panel.left-side {
+                transform: translateX(-100%);
+                left: 0;
+                right: auto;
+            }
+            .right-panel.menu-mobile-open {
+                transform: translateX(0);
+            }
+            .right-panel.left-side.menu-mobile-open {
+                transform: translateX(0);
+            }
+            #mobileMenuFab {
+                display: block;
+            }
+            .collapse-buttons {
+                display: none;
+            }
+        }
         
         /* Collapse Buttons */
         .collapse-buttons {
@@ -956,7 +1008,9 @@
 <body>
     <!-- Canvas -->
     <canvas id="canvas"></canvas>
-    
+
+    <button type="button" id="mobileMenuFab" aria-label="Menü öffnen">Menu</button>
+    <div id="mobileMenuBackdrop"></div>
     
     <!-- Right Panel - Tab System -->
     <div id="rightPanel" class="right-panel">
@@ -1260,32 +1314,77 @@
             }
         }
         
-        // Function to update canvas position and size
+        // Function to update canvas position and size (also used from bundle.js)
         function updateCanvasLayout() {
             const canvas = document.getElementById('canvas');
             if (!canvas) return;
-            
-            const menuWidth = 320; // Width of the menu panel (compact)
-            
-            if (isLeftSide) {
-                // Menu is on the left, canvas starts after menu
+
+            const menuWidth = window.innerWidth <= 900 ? 0 : 320;
+
+            if (menuWidth === 0) {
+                canvas.style.left = '0px';
+                canvas.style.width = window.innerWidth + 'px';
+            } else if (isLeftSide) {
                 canvas.style.left = menuWidth + 'px';
                 canvas.style.width = (window.innerWidth - menuWidth) + 'px';
             } else {
-                // Menu is on the right, canvas takes full width minus menu
                 canvas.style.left = '0px';
                 canvas.style.width = (window.innerWidth - menuWidth) + 'px';
             }
-            
-            // Update canvas internal size
-            canvas.width = parseInt(canvas.style.width);
+
+            canvas.width = parseInt(canvas.style.width, 10);
             canvas.height = window.innerHeight;
-            
-            // Notify multiMachine of resize
+
             if (window.multiMachine && window.multiMachine.handleResize) {
                 window.multiMachine.handleResize();
             }
         }
+
+        window.updateCanvasLayout = updateCanvasLayout;
+
+        const mobileMenuFab = document.getElementById('mobileMenuFab');
+        const mobileMenuBackdrop = document.getElementById('mobileMenuBackdrop');
+
+        function setMobileMenuOpen(open) {
+            if (!rightPanel) return;
+            if (window.innerWidth > 900) {
+                rightPanel.classList.remove('menu-mobile-open');
+                if (mobileMenuBackdrop) mobileMenuBackdrop.style.display = 'none';
+                if (mobileMenuFab) {
+                    mobileMenuFab.textContent = 'Menu';
+                    mobileMenuFab.setAttribute('aria-label', 'Menü öffnen');
+                }
+                return;
+            }
+            rightPanel.classList.toggle('menu-mobile-open', open);
+            if (mobileMenuBackdrop) {
+                mobileMenuBackdrop.style.display = open ? 'block' : 'none';
+            }
+            if (mobileMenuFab) {
+                mobileMenuFab.textContent = open ? 'Close' : 'Menu';
+                mobileMenuFab.setAttribute('aria-label', open ? 'Menü schließen' : 'Menü öffnen');
+            }
+        }
+
+        if (mobileMenuFab) {
+            mobileMenuFab.addEventListener('click', function () {
+                var open = !rightPanel.classList.contains('menu-mobile-open');
+                setMobileMenuOpen(open);
+                updateCanvasLayout();
+            });
+        }
+        if (mobileMenuBackdrop) {
+            mobileMenuBackdrop.addEventListener('click', function () {
+                setMobileMenuOpen(false);
+                updateCanvasLayout();
+            });
+        }
+        window.addEventListener('resize', function () {
+            if (window.innerWidth > 900) {
+                setMobileMenuOpen(false);
+                updateCanvasLayout();
+            }
+        });
         
         // Move panel to left side
         if (collapseLeftBtn) {

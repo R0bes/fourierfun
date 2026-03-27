@@ -14,16 +14,33 @@ window.onload = () => {
     return;
   }
   
-  // Canvas-Größe setzen - auf den sichtbaren Bereich beschränken
-  const menuWidth = 320; // Width of the right menu (compact)
-  canvas.width = window.innerWidth - menuWidth;
-  canvas.height = window.innerHeight;
-  
+  // Prevent browser scroll/zoom gestures from stealing the stroke; layout comes from updateCanvasLayout (HTML)
+  canvas.style.touchAction = 'none'
+
+  const syncCanvasFromLayout = () => {
+    const fn = (window as unknown as { updateCanvasLayout?: () => void }).updateCanvasLayout
+    if (typeof fn === 'function') {
+      fn()
+    } else {
+      const menuW = window.matchMedia('(max-width: 900px)').matches ? 0 : 320
+      canvas.style.left = '0px'
+      canvas.style.width = `${window.innerWidth - menuW}px`
+      canvas.width = window.innerWidth - menuW
+      canvas.height = window.innerHeight
+      const mm = (window as unknown as { multiMachine?: { handleResize: () => void } }).multiMachine
+      if (mm?.handleResize) mm.handleResize()
+    }
+  }
+
+  syncCanvasFromLayout()
+
   // Jetzt erst GenericMultiMachine erstellen (nach Canvas-Setup)
-  const multiMachine = new GenericMultiMachine();
+  const multiMachine = new GenericMultiMachine()
   
   // Setze MultiMachine global verfügbar für HTML
-  (window as any).multiMachine = multiMachine;
+  ;(window as any).multiMachine = multiMachine
+
+  syncCanvasFromLayout()
 
   // wire controls
   const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
@@ -265,44 +282,50 @@ window.onload = () => {
     });
   });
 
-  // Canvas Event Listener
-  let isDrawing = false;
-  
-  canvas.addEventListener('pointerdown', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    multiMachine.startDrawing(x, y);
-    isDrawing = true;
-  });
-  
-  canvas.addEventListener('pointermove', (e) => {
-    if (!isDrawing) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    multiMachine.continueDrawing(x, y);
-  });
-  
-  canvas.addEventListener('pointerup', () => {
-    if (isDrawing) {
-      multiMachine.finishDrawing();
-      isDrawing = false;
-    }
-  });
+  // Canvas: pointer capture so touch drags stay on the canvas
+  let isDrawing = false
+  let activePointerId: number | null = null
 
-  // Resize handling
-  const handleResize = () => {
-    const menuWidth = 320; // Width of the right menu (compact)
-    canvas.width = window.innerWidth - menuWidth;
-    canvas.height = window.innerHeight;
-    multiMachine.handleResize();
-  };
-  
-  window.addEventListener('resize', handleResize);
+  const endStroke = (e: PointerEvent) => {
+    if (activePointerId !== null && e.pointerId !== activePointerId) return
+    if (activePointerId !== null) {
+      try {
+        if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId)
+      } catch {
+        /* ignore */
+      }
+      activePointerId = null
+    }
+    if (isDrawing) {
+      multiMachine.finishDrawing()
+      isDrawing = false
+    }
+  }
+
+  canvas.addEventListener('pointerdown', (e) => {
+    if (!e.isPrimary || e.button !== 0) return
+    e.preventDefault()
+    canvas.setPointerCapture(e.pointerId)
+    activePointerId = e.pointerId
+    const rect = canvas.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    multiMachine.startDrawing(x, y)
+    isDrawing = true
+  })
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (!isDrawing || e.pointerId !== activePointerId) return
+    const rect = canvas.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    multiMachine.continueDrawing(x, y)
+  })
+
+  canvas.addEventListener('pointerup', endStroke)
+  canvas.addEventListener('pointercancel', endStroke)
+
+  window.addEventListener('resize', () => syncCanvasFromLayout())
   
 
 
