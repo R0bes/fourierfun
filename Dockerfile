@@ -1,16 +1,13 @@
-# Root FourierFun app: webpack build + Express static server
+# FourierFun: Vite React app (modern-fourier) + Express static server
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY modern-fourier/package.json modern-fourier/package-lock.json ./modern-fourier/
+RUN cd modern-fourier && npm ci
 
-COPY webpack.config.js tsconfig.json ./
-COPY src ./src
-COPY public ./public
-
-RUN npm run build
+COPY modern-fourier ./modern-fourier
+RUN cd modern-fourier && npm run build
 
 # Production image: only runtime deps + built assets
 FROM node:20-alpine AS runner
@@ -24,7 +21,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY server.js ./
-COPY --from=builder /app/public ./public
+COPY --from=builder /app/modern-fourier/dist ./public
 
 EXPOSE 3001
 

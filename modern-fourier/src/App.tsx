@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { DrawingCanvas } from './components/DrawingCanvas'
 import { Menu } from './components/Menu'
 import { useMachines } from './hooks/useMachines'
@@ -7,8 +7,28 @@ import { useDragDrop } from './hooks/useDragDrop'
 import { useRecording } from './hooks/useRecording'
 import { saveProfileToStorage, loadProfilesMap, deleteProfileFromStorage, type ProfileSnapshot } from './utils/profiles'
 
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false
+  )
+  useEffect(() => {
+    const mq = window.matchMedia(query)
+    const onChange = () => setMatches(mq.matches)
+    mq.addEventListener('change', onChange)
+    setMatches(mq.matches)
+    return () => mq.removeEventListener('change', onChange)
+  }, [query])
+  return matches
+}
+
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const narrowLayout = useMediaQuery('(max-width: 900px)')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  useEffect(() => {
+    if (!narrowLayout) setMobileMenuOpen(false)
+  }, [narrowLayout])
   const {
     curveData,
     machines,
@@ -123,7 +143,7 @@ function App() {
     }
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     updateSetting('legendVisible', true)
   }, [curveData.isCurveClosed, curveData.isCurveFixed])
 
@@ -212,21 +232,56 @@ function App() {
 
   const profileNames = Object.keys(loadProfilesMap())
 
+  const menuProps = {
+    settings,
+    curveData,
+    machines,
+    activeMachineId,
+    activeMachine,
+    profileNames,
+    isRecording,
+    onUpdateSetting: handleUpdateSetting,
+    onClearCurve: clearCurve,
+    onConfigureCurve: handleConfigureCurve,
+    onStartCurve: handleStartCurve,
+    onPreviousPhase: handlePreviousPhase,
+    onNextPhase: handleNextPhase,
+    onLoadImage: handleLoadImage,
+    onProcessImage: handleProcessImage,
+    onExtractPoints: handleExtractPoints,
+    onCreateMachine: () => createMachine(),
+    onDeleteMachine: deleteMachine,
+    onRenameMachine: renameMachine,
+    onSetActiveMachine: setActiveMachine,
+    onUpdateMachineColors: updateMachineColors,
+    onUpdateMachineAlphas: updateMachineAlphas,
+    onSaveProfile: handleSaveProfile,
+    onLoadProfile: handleLoadProfile,
+    onDeleteProfile: handleDeleteProfile,
+    onStartRecording: handleStartRecording,
+    onStopRecording: handleStopRecording
+  }
+
+  const edgePad = narrowLayout ? 8 : 20
+
   return (
     <div
       className={getPhaseClass()}
       style={{
         display: 'flex',
         height: '100vh',
-        padding: '20px',
-        gap: '20px',
-        position: 'relative'
+        padding: `${edgePad}px`,
+        gap: narrowLayout ? 8 : 20,
+        position: 'relative',
+        boxSizing: 'border-box'
       }}
     >
       <div
         style={{
           flex: 1,
-          position: 'relative'
+          position: 'relative',
+          minWidth: 0,
+          minHeight: 0
         }}
       >
         <div
@@ -265,47 +320,105 @@ function App() {
             onAddLinePoints={handleAddLinePoints}
           />
         </div>
+        {narrowLayout && (
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            style={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              zIndex: 5,
+              padding: '10px 14px',
+              borderRadius: 8,
+              border: '1px solid rgba(0, 255, 255, 0.35)',
+              background: 'rgba(0, 0, 0, 0.5)',
+              color: '#fff',
+              fontFamily: 'var(--font-primary, sans-serif)',
+              fontSize: 14,
+              cursor: 'pointer'
+            }}
+          >
+            Menu
+          </button>
+        )}
       </div>
 
-      <div
-        className="glass-container"
-        style={{
-          width: '480px',
-          height: 'fit-content',
-          maxHeight: 'calc(100vh - 40px)',
-          overflowY: 'auto'
-        }}
-      >
-        <Menu
-          settings={settings}
-          curveData={curveData}
-          machines={machines}
-          activeMachineId={activeMachineId}
-          activeMachine={activeMachine}
-          profileNames={profileNames}
-          isRecording={isRecording}
-          onUpdateSetting={handleUpdateSetting}
-          onClearCurve={clearCurve}
-          onConfigureCurve={handleConfigureCurve}
-          onStartCurve={handleStartCurve}
-          onPreviousPhase={handlePreviousPhase}
-          onNextPhase={handleNextPhase}
-          onLoadImage={handleLoadImage}
-          onProcessImage={handleProcessImage}
-          onExtractPoints={handleExtractPoints}
-          onCreateMachine={() => createMachine()}
-          onDeleteMachine={deleteMachine}
-          onRenameMachine={renameMachine}
-          onSetActiveMachine={setActiveMachine}
-          onUpdateMachineColors={updateMachineColors}
-          onUpdateMachineAlphas={updateMachineAlphas}
-          onSaveProfile={handleSaveProfile}
-          onLoadProfile={handleLoadProfile}
-          onDeleteProfile={handleDeleteProfile}
-          onStartRecording={handleStartRecording}
-          onStopRecording={handleStopRecording}
-        />
-      </div>
+      {!narrowLayout && (
+        <div
+          className="glass-container"
+          style={{
+            width: '480px',
+            height: 'fit-content',
+            maxHeight: 'calc(100vh - 40px)',
+            overflowY: 'auto',
+            flexShrink: 0
+          }}
+        >
+          <Menu {...menuProps} />
+        </div>
+      )}
+
+      {narrowLayout && mobileMenuOpen && (
+        <>
+          <div
+            role="presentation"
+            onClick={() => setMobileMenuOpen(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 1000
+            }}
+          />
+          <div
+            className="glass-container"
+            style={{
+              position: 'fixed',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: 'min(480px, 100vw)',
+              maxHeight: '100vh',
+              overflowY: 'auto',
+              zIndex: 1001,
+              borderRadius: 0,
+              boxShadow: '-8px 0 32px rgba(0, 0, 0, 0.45)'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                padding: '12px 12px 0',
+                position: 'sticky',
+                top: 0,
+                background: 'inherit',
+                zIndex: 1
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  background: 'rgba(0, 0, 0, 0.35)',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-primary, sans-serif)',
+                  fontSize: 14
+                }}
+              >
+                Close
+              </button>
+            </div>
+            <Menu {...menuProps} />
+          </div>
+        </>
+      )}
     </div>
   )
 }

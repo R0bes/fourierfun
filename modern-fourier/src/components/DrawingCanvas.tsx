@@ -80,7 +80,21 @@ export const DrawingCanvas = forwardRef<HTMLCanvasElement, DrawingCanvasProps>(f
   // Line drawing state
   const [isDrawingLine, setIsDrawingLine] = useState(false)
   const [linePoints, setLinePoints] = useState<Point[]>([])
-  
+  /** Touch-safe: mousemove often has buttons===0; track stroke with refs + pointer capture */
+  const lineStrokeActiveRef = useRef(false)
+  const linePointsRef = useRef<Point[]>([])
+  useEffect(() => {
+    linePointsRef.current = linePoints
+  }, [linePoints])
+
+  const releaseCaptureSafe = useCallback((el: HTMLCanvasElement, pointerId: number) => {
+    try {
+      if (el.hasPointerCapture(pointerId)) el.releasePointerCapture(pointerId)
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
   // Update refs when functions change
   useEffect(() => {
     onUpdateAnimationTimeRef.current = onUpdateAnimationTime
@@ -332,75 +346,85 @@ export const DrawingCanvas = forwardRef<HTMLCanvasElement, DrawingCanvasProps>(f
     }
   }, [curveData, settings, activeMachine, trailRef, drawCurrentLine, isDrawingLine])
 
-  // Handle mouse down - start drawing line or handle points mode
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    
-    // If currently dragging, stop dragging on click
-    if (dragState.isDraggingCenter || dragState.draggedPointIndex !== null) {
-      onStopAllDragging()
-      return
-    }
-    
-    // Don't allow adding points if curve is fixed (Phase 3)
-    if (curveData.isCurveFixed) {
-      return
-    }
-    
-    const rect = canvas.getBoundingClientRect()
-    const canvasPoint: Point = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    }
-    
-    const mathPoint = canvasToMath(canvasPoint, canvas.width, canvas.height)
-    
-    // Line mode: start drawing a line
-    if (settings.drawMode === 'line') {
-      setIsDrawingLine(true)
-      setLinePoints([mathPoint])
-      return
-    }
-    
-    // Points mode: existing logic
-    // Check if clicking on center of mass
-    if (curveData.centerOfMass) {
-      const centerCanvas = mathToCanvas(curveData.centerOfMass, canvas.width, canvas.height)
-      const distance = Math.sqrt(
-        Math.pow(canvasPoint.x - centerCanvas.x, 2) + 
-        Math.pow(canvasPoint.y - centerCanvas.y, 2)
-      )
-      
-      if (distance < 15) {
-        onStartDraggingCenter()
+  // Pointer down - start drawing line or handle points mode (mouse + touch + pen)
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (!e.isPrimary || e.button !== 0) return
+      const canvas = canvasRef.current
+      if (!canvas) return
+
+      // If currently dragging, stop dragging on tap
+      if (dragState.isDraggingCenter || dragState.draggedPointIndex !== null) {
+        onStopAllDragging()
         return
       }
-    }
-    
-    // Check if clicking on an existing point
-    if (curveData.drawnPoints.length > 0) {
-      const closestIndex = findClosestPointOnCurve(mathPoint, curveData.drawnPoints)
-      if (closestIndex !== -1) {
-        onToggleDraggingPoint(closestIndex)
+
+      if (curveData.isCurveFixed) {
         return
       }
-    }
-    
-    // Check if clicking on the curve to insert a point (works for both open and closed curves)
-    if (!curveData.isCurveFixed && curveData.completeCurve.length > 0) {
-      const closestCurveIndex = findClosestPointOnCurve(mathPoint, curveData.completeCurve)
-      if (closestCurveIndex !== -1) {
-        insertPointOnCurve(mathPoint, closestCurveIndex)
+
+      const rect = canvas.getBoundingClientRect()
+      const canvasPoint: Point = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      }
+
+      const mathPoint = canvasToMath(canvasPoint, canvas.width, canvas.height)
+
+      if (settings.drawMode === 'line') {
+        lineStrokeActiveRef.current = true
+        setIsDrawingLine(true)
+        setLinePoints([mathPoint])
+        canvas.setPointerCapture(e.pointerId)
         return
       }
-    }
-    
-    // Otherwise, add a new point (only if curve is not closed OR we're in edit phase)
-    if (!curveData.isCurveClosed || (!curveData.isCurveConfigured && !curveData.isCurveFixed)) {
-      onAddPoint(mathPoint)
-    }
-  }, [curveData, dragState, settings, onAddPoint, onStartDraggingCenter, onToggleDraggingPoint, onStopAllDragging, insertPointOnCurve, findClosestPointOnCurve])
+
+      if (curveData.centerOfMass) {
+        const centerCanvas = mathToCanvas(curveData.centerOfMass, canvas.width, canvas.height)
+        const distance = Math.sqrt(
+          Math.pow(canvasPoint.x - centerCanvas.x, 2) + Math.pow(canvasPoint.y - centerCanvas.y, 2)
+        )
+
+        if (distance < 15) {
+          onStartDraggingCenter()
+          canvas.setPointerCapture(e.pointerId)
+          return
+        }
+      }
+
+      if (curveData.drawnPoints.length > 0) {
+        const closestIndex = findClosestPointOnCurve(mathPoint, curveData.drawnPoints)
+        if (closestIndex !== -1) {
+          onToggleDraggingPoint(closestIndex)
+          canvas.setPointerCapture(e.pointerId)
+          return
+        }
+      }
+
+      if (!curveData.isCurveFixed && curveData.completeCurve.length > 0) {
+        const closestCurveIndex = findClosestPointOnCurve(mathPoint, curveData.completeCurve)
+        if (closestCurveIndex !== -1) {
+          insertPointOnCurve(mathPoint, closestCurveIndex)
+          return
+        }
+      }
+
+      if (!curveData.isCurveClosed || (!curveData.isCurveConfigured && !curveData.isCurveFixed)) {
+        onAddPoint(mathPoint)
+      }
+    },
+    [
+      curveData,
+      dragState,
+      settings.drawMode,
+      onAddPoint,
+      onStartDraggingCenter,
+      onToggleDraggingPoint,
+      onStopAllDragging,
+      insertPointOnCurve,
+      findClosestPointOnCurve
+    ]
+  )
 
   // Handle mouse click - only for ending drag operations
   const handleClick = useCallback((_e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -441,50 +465,70 @@ export const DrawingCanvas = forwardRef<HTMLCanvasElement, DrawingCanvasProps>(f
     }
   }, [curveData.drawnPoints, curveData.isCurveClosed, onCloseCurve, onDeletePoint, findClosestPointOnCurve])
 
-  // Handle mouse move for dragging and line drawing
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    
-    const rect = canvas.getBoundingClientRect()
-    const canvasPoint: Point = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    }
-    
-    const mathPoint = canvasToMath(canvasPoint, canvas.width, canvas.height)
-    
-    // Line mode: add points to the current line only if mouse is pressed
-    if (settings.drawMode === 'line' && isDrawingLine && e.buttons === 1) {
-      setLinePoints(prev => [...prev, mathPoint])
-      return
-    }
-    
-    // Points mode: existing dragging logic
-    if (dragState.isDraggingCenter) {
-      // Grid snap removed - no grid anymore
-      onUpdateCenterOfMass(mathPoint)
-    } else if (dragState.draggedPointIndex !== null) {
-      // Grid snap removed - no grid anymore
-      onUpdatePoint(dragState.draggedPointIndex, mathPoint)
-    }
-  }, [dragState, settings, onUpdateCenterOfMass, onUpdatePoint, isDrawingLine])
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (!e.isPrimary) return
+      const canvas = canvasRef.current
+      if (!canvas) return
 
-  // Handle mouse up - finish line drawing or stop dragging
-  const handleMouseUp = useCallback(() => {
-    // Line mode: finish drawing the line when mouse is released
-    if (settings.drawMode === 'line' && isDrawingLine) {
-      if (linePoints.length > 1) {
-        onAddLinePoints(linePoints)
+      const rect = canvas.getBoundingClientRect()
+      const canvasPoint: Point = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
       }
+
+      const mathPoint = canvasToMath(canvasPoint, canvas.width, canvas.height)
+
+      if (settings.drawMode === 'line' && lineStrokeActiveRef.current) {
+        setLinePoints(prev => [...prev, mathPoint])
+        return
+      }
+
+      if (dragState.isDraggingCenter) {
+        onUpdateCenterOfMass(mathPoint)
+      } else if (dragState.draggedPointIndex !== null) {
+        onUpdatePoint(dragState.draggedPointIndex, mathPoint)
+      }
+    },
+    [dragState, settings.drawMode, onUpdateCenterOfMass, onUpdatePoint]
+  )
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (!e.isPrimary) return
+      const canvas = canvasRef.current
+      if (canvas) {
+        releaseCaptureSafe(canvas, e.pointerId)
+      }
+
+      if (settings.drawMode === 'line' && lineStrokeActiveRef.current) {
+        lineStrokeActiveRef.current = false
+        const pts = linePointsRef.current
+        if (pts.length > 1) {
+          onAddLinePoints(pts)
+        }
+        setIsDrawingLine(false)
+        setLinePoints([])
+      }
+    },
+    [settings.drawMode, onAddLinePoints, releaseCaptureSafe]
+  )
+
+  const handlePointerCancel = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (!e.isPrimary) return
+      handlePointerUp(e)
+    },
+    [handlePointerUp]
+  )
+
+  const handleLostPointerCapture = useCallback(() => {
+    if (lineStrokeActiveRef.current) {
+      lineStrokeActiveRef.current = false
       setIsDrawingLine(false)
       setLinePoints([])
-      return
     }
-    
-    // Points mode: don't automatically stop dragging here - let the click handler decide
-    // This allows for click-to-drop functionality
-  }, [settings.drawMode, isDrawingLine, linePoints, onAddLinePoints])
+  }, [])
 
   // Handle keyboard events
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -629,13 +673,16 @@ export const DrawingCanvas = forwardRef<HTMLCanvasElement, DrawingCanvasProps>(f
         height: '100%',
         cursor: dragState.isDraggingCenter || dragState.draggedPointIndex !== null ? 'grabbing' : 'crosshair',
         background: 'transparent',
-        display: 'block'
+        display: 'block',
+        touchAction: 'none'
       }}
-      onMouseDown={handleMouseDown}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      onLostPointerCapture={handleLostPointerCapture}
       onClick={handleClick}
       onContextMenu={handleRightClick}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
       onKeyDown={handleKeyDown}
       onLoad={() => {
         // Ensure canvas is drawn when loaded

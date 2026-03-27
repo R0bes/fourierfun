@@ -7,8 +7,8 @@ node_modules
 .cursor
 .mind
 
-# Not needed for root webpack build
-modern-fourier
+# Not needed for Docker image (Vite app copied explicitly; skip nested deps — installed in build stage)
+modern-fourier/node_modules
 3d-fourier
 video
 img
