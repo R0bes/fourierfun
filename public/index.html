@@ -35,30 +35,65 @@
             touch-action: none;
         }
 
-        /* Mobile: floating control to open the side panel (overlay) */
-        #mobileMenuFab {
-            display: none;
+        /* Single edge tab: open/close side panel (fixed; position.right set in JS) */
+        #collapseLeftBtn.panel-edge-toggle {
             position: fixed;
-            bottom: 16px;
-            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            right: 0;
             z-index: 1002;
-            padding: 10px 16px;
-            border-radius: 10px;
-            border: 1px solid rgba(168, 85, 247, 0.55);
-            background: rgba(24, 24, 37, 0.92);
-            color: #E9D5FF;
+            width: 30px;
+            height: 44px;
+            padding: 0;
+            border-radius: 8px 0 0 8px;
+            border: 1px solid rgba(168, 85, 247, 0.6);
+            background: rgba(168, 85, 247, 0.95);
+            color: white;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+            transition: right 0.3s ease;
         }
 
         #mobileMenuBackdrop {
             display: none;
             position: fixed;
             inset: 0;
-            z-index: 1000;
+            z-index: 998;
             background: rgba(0, 0, 0, 0.45);
+        }
+
+        /* Fourier diagram settings: collapsible group */
+        #fourierDiagramControls {
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            background: rgba(168, 85, 247, 0.06);
+        }
+        #fourierDiagramHeader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            cursor: pointer;
+            user-select: none;
+            font-size: 12px;
+            font-weight: 600;
+            color: #E9D5FF;
+        }
+        #fourierDiagramHeader:hover {
+            background: rgba(168, 85, 247, 0.1);
+        }
+        #fourierDiagramControls.collapsed #fourierDiagramBody {
+            display: none;
+        }
+        #fourierDiagramBody {
+            padding: 0 10px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
         /* Toggle Button - Entfernt, da Menü jetzt fest ist */
@@ -532,89 +567,16 @@
             z-index: 999;
             display: flex;
             flex-direction: column;
-            transition: all 0.3s ease;
-        }
-        
-        .right-panel.left-side {
-            right: auto;
-            left: 0;
+            transition: transform 0.3s ease;
         }
 
-        @media (max-width: 900px) {
-            .right-panel {
-                width: min(320px, 100vw);
-                transform: translateX(100%);
-                box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
-            }
-            .right-panel.left-side {
-                transform: translateX(-100%);
-                left: 0;
-                right: auto;
-            }
-            .right-panel.menu-mobile-open {
-                transform: translateX(0);
-            }
-            .right-panel.left-side.menu-mobile-open {
-                transform: translateX(0);
-            }
-            #mobileMenuFab {
-                display: block;
-            }
-            .collapse-buttons {
-                display: none;
-            }
+        .right-panel.side-panel-open {
+            transform: translateX(0);
+            box-shadow: -8px 0 24px rgba(0, 0, 0, 0.35);
         }
-        
-        /* Collapse Buttons */
-        .collapse-buttons {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 1000;
-        }
-        
-        .right-panel .collapse-buttons {
-            left: -40px;
-        }
-        
-        .right-panel.left-side .collapse-buttons {
-            right: -40px;
-            left: auto;
-        }
-        
-        .collapse-btn {
-            width: 30px;
-            height: 40px;
-            background: rgba(168, 85, 247, 0.9);
-            border: 1px solid rgba(168, 85, 247, 0.6);
-            color: white;
-            border-radius: 6px 0 0 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-        
-        .right-panel.left-side .collapse-btn {
-            border-radius: 0 6px 6px 0;
-        }
-        
-        .collapse-btn:hover {
-            background: rgba(168, 85, 247, 1);
-            border-color: rgba(168, 85, 247, 0.8);
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        }
-        
-        .collapse-btn:active {
-            transform: scale(0.95);
+
+        .right-panel:not(.side-panel-open) {
+            transform: translateX(100%);
         }
 
         /* Tab Navigation */
@@ -1009,17 +971,11 @@
     <!-- Canvas -->
     <canvas id="canvas"></canvas>
 
-    <button type="button" id="mobileMenuFab" aria-label="Menü öffnen">Menu</button>
     <div id="mobileMenuBackdrop"></div>
-    
+    <button type="button" id="collapseLeftBtn" class="panel-edge-toggle" aria-label="Menü öffnen">◀</button>
+
     <!-- Right Panel - Tab System -->
-    <div id="rightPanel" class="right-panel">
-        <!-- Collapse Buttons -->
-        <div class="collapse-buttons">
-            <button id="collapseLeftBtn" class="collapse-btn left" title="Menü nach links verschieben">◀</button>
-            <button id="collapseRightBtn" class="collapse-btn right" title="Menü nach rechts verschieben">▶</button>
-        </div>
-        
+    <div id="rightPanel" class="right-panel side-panel-open">
         <!-- Tab Navigation -->
         <div class="tab-navigation">
             <button class="tab-btn active" data-tab="machine-config">🎯 Maschine</button>
@@ -1129,13 +1085,25 @@
                 <div class="section-header"><span>👁️ Anzeige</span></div>
                 <div class="section-body">
                     <div class="section-body-inner">
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="toggleFrequencySpectrum" checked>
-                            <label for="toggleFrequencySpectrum">Frequenzspektrum anzeigen</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="togglePhaseDiagram" checked>
-                            <label for="togglePhaseDiagram">Phasendiagramm anzeigen</label>
+                        <div id="fourierDiagramControls">
+                            <div id="fourierDiagramHeader" role="button" tabindex="0">
+                                <span>Fourier-Diagramme (oben)</span>
+                                <span id="fourierDiagramChevron">▼</span>
+                            </div>
+                            <div id="fourierDiagramBody">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="toggleFourierPanelsExpanded" checked>
+                                    <label for="toggleFourierPanelsExpanded">Leiste auf dem Canvas</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="toggleFrequencySpectrum" checked>
+                                    <label for="toggleFrequencySpectrum">Frequenzspektrum</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="togglePhaseDiagram" checked>
+                                    <label for="togglePhaseDiagram">Phasendiagramm</label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1293,44 +1261,44 @@
 
     <script src="bundle.js"></script>
     <script>
-        // Panel collapse functionality
+        // Side panel: single toggle (collapseLeftBtn), no left/right dock swap
         const rightPanel = document.getElementById('rightPanel');
         const collapseLeftBtn = document.getElementById('collapseLeftBtn');
-        const collapseRightBtn = document.getElementById('collapseRightBtn');
-        let isLeftSide = false;
-        
-        // Initialize button visibility
-        function updateCollapseButtons() {
-            if (isLeftSide) {
-                collapseLeftBtn.style.display = 'none';
-                collapseRightBtn.style.display = 'flex';
-                collapseRightBtn.innerHTML = '▶';
-                collapseRightBtn.title = 'Menü nach rechts verschieben';
+        const mobileMenuBackdrop = document.getElementById('mobileMenuBackdrop');
+
+        function syncPanelDefaultForViewport() {
+            if (!rightPanel) return;
+            if (window.innerWidth <= 900) {
+                rightPanel.classList.remove('side-panel-open');
             } else {
-                collapseLeftBtn.style.display = 'flex';
-                collapseRightBtn.style.display = 'none';
-                collapseLeftBtn.innerHTML = '◀';
-                collapseLeftBtn.title = 'Menü nach links verschieben';
+                rightPanel.classList.add('side-panel-open');
             }
         }
-        
+        syncPanelDefaultForViewport();
+
+        function updateEdgeToggleButton() {
+            if (!collapseLeftBtn || !rightPanel) return;
+            var open = rightPanel.classList.contains('side-panel-open');
+            var narrow = window.innerWidth <= 900;
+            collapseLeftBtn.style.right = open ? '320px' : '0px';
+            collapseLeftBtn.textContent = open ? '\u25B6' : '\u25C0';
+            collapseLeftBtn.setAttribute('aria-label', open ? 'Menü schließen' : 'Menü öffnen');
+            if (mobileMenuBackdrop) {
+                mobileMenuBackdrop.style.display = narrow && open ? 'block' : 'none';
+            }
+        }
+
         // Function to update canvas position and size (also used from bundle.js)
         function updateCanvasLayout() {
             const canvas = document.getElementById('canvas');
             if (!canvas) return;
 
-            const menuWidth = window.innerWidth <= 900 ? 0 : 320;
+            var narrow = window.innerWidth <= 900;
+            var panelOpen = rightPanel && rightPanel.classList.contains('side-panel-open');
+            var menuWidth = (!narrow && panelOpen) ? 320 : 0;
 
-            if (menuWidth === 0) {
-                canvas.style.left = '0px';
-                canvas.style.width = window.innerWidth + 'px';
-            } else if (isLeftSide) {
-                canvas.style.left = menuWidth + 'px';
-                canvas.style.width = (window.innerWidth - menuWidth) + 'px';
-            } else {
-                canvas.style.left = '0px';
-                canvas.style.width = (window.innerWidth - menuWidth) + 'px';
-            }
+            canvas.style.left = '0px';
+            canvas.style.width = (window.innerWidth - menuWidth) + 'px';
 
             canvas.width = parseInt(canvas.style.width, 10);
             canvas.height = window.innerHeight;
@@ -1338,76 +1306,47 @@
             if (window.multiMachine && window.multiMachine.handleResize) {
                 window.multiMachine.handleResize();
             }
+            updateEdgeToggleButton();
         }
 
         window.updateCanvasLayout = updateCanvasLayout;
 
-        const mobileMenuFab = document.getElementById('mobileMenuFab');
-        const mobileMenuBackdrop = document.getElementById('mobileMenuBackdrop');
-
-        function setMobileMenuOpen(open) {
-            if (!rightPanel) return;
-            if (window.innerWidth > 900) {
-                rightPanel.classList.remove('menu-mobile-open');
-                if (mobileMenuBackdrop) mobileMenuBackdrop.style.display = 'none';
-                if (mobileMenuFab) {
-                    mobileMenuFab.textContent = 'Menu';
-                    mobileMenuFab.setAttribute('aria-label', 'Menü öffnen');
-                }
-                return;
-            }
-            rightPanel.classList.toggle('menu-mobile-open', open);
-            if (mobileMenuBackdrop) {
-                mobileMenuBackdrop.style.display = open ? 'block' : 'none';
-            }
-            if (mobileMenuFab) {
-                mobileMenuFab.textContent = open ? 'Close' : 'Menu';
-                mobileMenuFab.setAttribute('aria-label', open ? 'Menü schließen' : 'Menü öffnen');
-            }
-        }
-
-        if (mobileMenuFab) {
-            mobileMenuFab.addEventListener('click', function () {
-                var open = !rightPanel.classList.contains('menu-mobile-open');
-                setMobileMenuOpen(open);
+        if (collapseLeftBtn && rightPanel) {
+            collapseLeftBtn.addEventListener('click', function () {
+                rightPanel.classList.toggle('side-panel-open');
                 updateCanvasLayout();
             });
         }
         if (mobileMenuBackdrop) {
             mobileMenuBackdrop.addEventListener('click', function () {
-                setMobileMenuOpen(false);
+                if (rightPanel) rightPanel.classList.remove('side-panel-open');
                 updateCanvasLayout();
             });
         }
         window.addEventListener('resize', function () {
-            if (window.innerWidth > 900) {
-                setMobileMenuOpen(false);
-                updateCanvasLayout();
-            }
+            syncPanelDefaultForViewport();
+            updateCanvasLayout();
         });
-        
-        // Move panel to left side
-        if (collapseLeftBtn) {
-            collapseLeftBtn.addEventListener('click', () => {
-                rightPanel.classList.add('left-side');
-                isLeftSide = true;
-                updateCollapseButtons();
-                updateCanvasLayout();
+
+        (function fourierDiagramSectionToggle() {
+            var wrap = document.getElementById('fourierDiagramControls');
+            var header = document.getElementById('fourierDiagramHeader');
+            var chev = document.getElementById('fourierDiagramChevron');
+            if (!wrap || !header) return;
+            function toggle() {
+                wrap.classList.toggle('collapsed');
+                if (chev) chev.textContent = wrap.classList.contains('collapsed') ? '\u25B6' : '\u25BC';
+            }
+            header.addEventListener('click', toggle);
+            header.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggle();
+                }
             });
-        }
-        
-        // Move panel to right side
-        if (collapseRightBtn) {
-            collapseRightBtn.addEventListener('click', () => {
-                rightPanel.classList.remove('left-side');
-                isLeftSide = false;
-                updateCollapseButtons();
-                updateCanvasLayout();
-            });
-        }
-        
-        // Initialize button visibility
-        updateCollapseButtons();
+        })();
+
+        updateEdgeToggleButton();
         
         // Tab functionality
         const tabBtns = document.querySelectorAll('.tab-btn');
@@ -2058,7 +1997,8 @@
                         rainbowMode: window.multiMachine.grid.rainbowMode,
                         particleSystem: window.multiMachine.grid.particleSystem,
                         showFrequencySpectrum: window.multiMachine.showFrequencySpectrum,
-                        showPhaseDiagram: window.multiMachine.showPhaseDiagram
+                        showPhaseDiagram: window.multiMachine.showPhaseDiagram,
+                        fourierPanelsExpanded: window.multiMachine.fourierPanelsExpanded
                     }
                 };
                 
@@ -2120,6 +2060,9 @@
                     window.multiMachine.setGridProperty('particleSystem', profile.gridSettings.particleSystem);
                     window.multiMachine.setGridProperty('showFrequencySpectrum', profile.gridSettings.showFrequencySpectrum);
                     window.multiMachine.setGridProperty('showPhaseDiagram', profile.gridSettings.showPhaseDiagram);
+                    if (profile.gridSettings.fourierPanelsExpanded !== undefined) {
+                        window.multiMachine.setGridProperty('fourierPanelsExpanded', profile.gridSettings.fourierPanelsExpanded);
+                    }
                 }
                 
                 // Update UI
@@ -2270,6 +2213,7 @@
             const togglePath = document.getElementById('togglePath');
             const toggleDrawn = document.getElementById('toggleDrawn');
             const toggleGlow = document.getElementById('toggleGlow');
+            const toggleFourierPanelsExpanded = document.getElementById('toggleFourierPanelsExpanded');
             const toggleFrequencySpectrum = document.getElementById('toggleFrequencySpectrum');
             const togglePhaseDiagram = document.getElementById('togglePhaseDiagram');
             const toggleGrid = document.getElementById('toggleGrid');
@@ -2282,6 +2226,7 @@
             if (togglePath) togglePath.checked = activeMachine.showPath;
             if (toggleDrawn) toggleDrawn.checked = activeMachine.showDrawn;
             if (toggleGlow) toggleGlow.checked = activeMachine.showGlow;
+            if (toggleFourierPanelsExpanded) toggleFourierPanelsExpanded.checked = window.multiMachine.fourierPanelsExpanded;
             if (toggleFrequencySpectrum) toggleFrequencySpectrum.checked = window.multiMachine.showFrequencySpectrum;
             if (togglePhaseDiagram) togglePhaseDiagram.checked = window.multiMachine.showPhaseDiagram;
             if (toggleGrid) toggleGrid.checked = window.multiMachine.grid.showGrid;

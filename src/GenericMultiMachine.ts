@@ -33,11 +33,14 @@ export class GenericMultiMachine {
     // Extended Grid properties
     private showFrequencySpectrum: boolean = true; // Standardmäßig anzeigen
     private showPhaseDiagram: boolean = true; // Standardmäßig anzeigen
+    /** Master toggle: both canvas panels (spectrum + phase row) */
+    public fourierPanelsExpanded: boolean = true;
     private showHarmonics: boolean = true;
-    private spectrumPosition: Point = new Point(50, 50);
-    private phaseDiagramPosition: Point = new Point(50, 200);
-    private spectrumSize: Point = new Point(300, 120);
-    private phaseDiagramSize: number = 150;
+    /** Top row: spectrum left, phase right (aligned heights) */
+    private spectrumPosition: Point = new Point(16, 16);
+    private phaseDiagramPosition: Point = new Point(308, 16);
+    private spectrumSize: Point = new Point(280, 110);
+    private phaseDiagramSize: number = 110;
     
     // Grid instance
     private grid: Grid;
@@ -256,13 +259,14 @@ export class GenericMultiMachine {
             machine.render(context);
         });
         
-        // Render additional visualizations
-        if (this.showFrequencySpectrum) {
-            this.renderFrequencySpectrum(context);
-        }
-        
-        if (this.showPhaseDiagram) {
-            this.renderPhaseDiagram(context);
+        // Render additional visualizations (side-by-side top row when expanded)
+        if (this.fourierPanelsExpanded) {
+            if (this.showFrequencySpectrum) {
+                this.renderFrequencySpectrum(context);
+            }
+            if (this.showPhaseDiagram) {
+                this.renderPhaseDiagram(context);
+            }
         }
         
         // Render character trails
@@ -316,6 +320,13 @@ export class GenericMultiMachine {
         context.strokeStyle = this.activeMachine.getColor('path');
         context.lineWidth = 2;
         context.strokeRect(this.spectrumPosition.x, this.spectrumPosition.y, this.spectrumSize.x, this.spectrumSize.y);
+
+        const colors = this.activeMachine.getComponentColors();
+        context.fillStyle = colors.path;
+        context.font = '11px monospace';
+        context.textAlign = 'left';
+        context.globalAlpha = 0.95;
+        context.fillText('Spectrum', this.spectrumPosition.x + 6, this.spectrumPosition.y + 14);
         
         // Use current animation frame for dynamic spectrum
         const currentFrame = this.activeMachine.getCurrentAnimationFrame();
@@ -329,14 +340,16 @@ export class GenericMultiMachine {
         const currentAmplitudes = nonDCFrame.map(frame => frame.amplitude);
         const maxAmplitude = Math.max(...currentAmplitudes);
         const barWidth = this.spectrumSize.x / currentAmplitudes.length;
-        const colors = this.activeMachine.getComponentColors();
+        const chartBottomPad = 6;
+        const chartTopPad = 22;
+        const chartHeight = this.spectrumSize.y - chartTopPad - chartBottomPad;
         
         for (let i = 0; i < currentAmplitudes.length; i++) {
             const amplitude = currentAmplitudes[i];
-            const barHeight = (amplitude / maxAmplitude) * (this.spectrumSize.y - 10);
+            const barHeight = maxAmplitude > 0 ? (amplitude / maxAmplitude) * chartHeight : 0;
             
             const x = this.spectrumPosition.x + i * barWidth + 2;
-            const y = this.spectrumPosition.y + this.spectrumSize.y - barHeight - 5;
+            const y = this.spectrumPosition.y + this.spectrumSize.y - chartBottomPad - barHeight;
             const width = barWidth - 4;
             
             // Get color for this frequency bar (with time for animation)
@@ -380,6 +393,13 @@ export class GenericMultiMachine {
         // Background
         context.fillStyle = 'rgba(0, 0, 0, 0.7)';
         context.fillRect(this.phaseDiagramPosition.x, this.phaseDiagramPosition.y, this.phaseDiagramSize, this.phaseDiagramSize);
+
+        const colors = this.activeMachine.getComponentColors();
+        context.fillStyle = colors.path;
+        context.font = '11px monospace';
+        context.textAlign = 'left';
+        context.globalAlpha = 0.95;
+        context.fillText('Phase', this.phaseDiagramPosition.x + 6, this.phaseDiagramPosition.y + 14);
         
         const centerX = this.phaseDiagramPosition.x + this.phaseDiagramSize / 2;
         const centerY = this.phaseDiagramPosition.y + this.phaseDiagramSize / 2;
@@ -393,7 +413,6 @@ export class GenericMultiMachine {
         }
         
         const components = this.activeMachine.getFourierCoefficients();
-        const colors = this.activeMachine.getComponentColors();
         
         // Skip DC component (index 0) and normalize the rest
         const nonDCFrame = currentFrame.slice(1); // Remove DC component
@@ -665,6 +684,9 @@ export class GenericMultiMachine {
                 break;
             case 'showPhaseDiagram':
                 this.showPhaseDiagram = value;
+                break;
+            case 'fourierPanelsExpanded':
+                this.fourierPanelsExpanded = value;
                 break;
             case 'showCharTrail':
                 this.showCharTrail = value;

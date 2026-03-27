@@ -71,6 +71,7 @@ window.onload = () => {
   const uploadImage = document.getElementById('uploadImage') as HTMLButtonElement;
 
   // Neue Controls für erweiterte Visualisierungen
+  const toggleFourierPanelsExpanded = $('toggleFourierPanelsExpanded') as HTMLInputElement;
   const toggleFrequencySpectrum = $('toggleFrequencySpectrum') as HTMLInputElement;
   const togglePhaseDiagram = $('togglePhaseDiagram') as HTMLInputElement;
 
@@ -192,6 +193,10 @@ window.onload = () => {
   };
   
   // Neue Controls für erweiterte Visualisierungen
+  if (toggleFourierPanelsExpanded) toggleFourierPanelsExpanded.oninput = () => {
+    multiMachine.setGridProperty('fourierPanelsExpanded', toggleFourierPanelsExpanded.checked);
+  };
+
   if (toggleFrequencySpectrum) toggleFrequencySpectrum.oninput = () => { 
     multiMachine.setGridProperty('showFrequencySpectrum', toggleFrequencySpectrum.checked);
   };
