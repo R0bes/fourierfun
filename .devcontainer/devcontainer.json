@@ -1,0 +1,14 @@
+{
+  "name": "FourierFun",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "forwardPorts": [3001],
+  "portsAttributes": {
+    "3001": {
+      "label": "FourierFun App",
+      "onAutoForward": "openBrowser",
+      "visibility": "public"
+    }
+  },
+  "postCreateCommand": "npm ci",
+  "postStartCommand": "npm run build && node server.js"
+}
