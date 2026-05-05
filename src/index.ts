@@ -57,8 +57,9 @@ window.onload = () => {
   const reset = document.getElementById('reset') as HTMLButtonElement;
 
   // Neue Grid-Controls
-  const toggleRainbowMode = $('toggleRainbowMode') as HTMLInputElement;
+  const toggleCharacterMode = $('toggleCharacterMode') as HTMLInputElement;
   const toggleParticleSystem = $('toggleParticleSystem') as HTMLInputElement;
+  const toggleCharGlow = $('toggleCharGlow') as HTMLInputElement;
 
   // Additional controls that were missing
   const cell = $('cell');
@@ -140,8 +141,12 @@ window.onload = () => {
   
   // Neue Grid-Controls
   
-  if (toggleRainbowMode) toggleRainbowMode.oninput = () => { 
-    multiMachine.setGridProperty('rainbowMode', toggleRainbowMode.checked);
+  if (toggleCharacterMode) toggleCharacterMode.oninput = () => { 
+    multiMachine.setGridProperty('characterMode', toggleCharacterMode.checked);
+  };
+  
+  if (toggleCharGlow) toggleCharGlow.oninput = () => {
+    multiMachine.setGridProperty('charGlow', toggleCharGlow.checked);
   };
   
   if (toggleParticleSystem) toggleParticleSystem.oninput = () => { 

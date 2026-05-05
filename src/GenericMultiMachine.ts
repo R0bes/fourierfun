@@ -27,6 +27,7 @@ export class GenericMultiMachine {
     private showCharTrail: boolean = true;
     private characterTrailLength: number = 33;
     private characterTrailIntensity: number = 1.0;
+    private charGlow: boolean = false;
     private lineThickness: number = 3;
     private samples: number = 1024;
     
@@ -122,6 +123,7 @@ export class GenericMultiMachine {
         if (!machine) return false;
         
         this.activeMachine = machine;
+        this.updateFourierFormulaIfNeeded();
         return true;
     }
     
@@ -165,6 +167,17 @@ export class GenericMultiMachine {
         
         if (this.activeMachine.needsFourierCalculation()) {
             this.activeMachine.calculateFourier();
+            this.updateFourierFormulaIfNeeded();
+        }
+    }
+    
+    private updateFourierFormulaIfNeeded(): void {
+        // Prüfe, ob Character Mode aktiv ist (über das Grid)
+        if (this.grid && this.activeMachine) {
+            const components = this.activeMachine.getFourierCoefficients();
+            if (components.length > 0) {
+                this.grid.setProperty('fourierFormula', components);
+            }
         }
     }
     
@@ -476,7 +489,10 @@ export class GenericMultiMachine {
     
     // Resize handling
     handleResize(): void {
-        // Handle canvas resize if needed
+        const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+        if (!canvas || !this.grid) return;
+
+        this.grid.resize(canvas.width, canvas.height);
     }
     
     // Image processing: load image, threshold to points, map to canvas (fit aspect ratio), limit points
@@ -662,6 +678,11 @@ export class GenericMultiMachine {
                     this.grid.setRainbowMode(value);
                 }
                 break;
+            case 'characterColor':
+                if (this.grid) {
+                    this.grid.setCharacterColor(value);
+                }
+                break;
             case 'particleSystem':
                 if (this.grid) {
                     this.grid.setParticleSystem(value);
@@ -670,11 +691,25 @@ export class GenericMultiMachine {
             case 'cellSize':
                 this.cellSize = value;
                 if (this.grid) {
-                    this.grid.setCellSize(value);
+                    const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+                    if (canvas) {
+                        this.grid.setCellSize(value, canvas.width, canvas.height);
+                    } else {
+                        this.grid.setCellSize(value);
+                    }
                 }
                 break;
-            case 'cell':
-                // Handle cell styling if needed
+            case 'characterMode':
+                // Wenn Character Mode aktiviert wird, setze characterMode und aktualisiere die Fourier-Formel
+                if (this.grid) {
+                    this.grid.setProperty('characterMode', value);
+                }
+                if (value && this.activeMachine) {
+                    const components = this.activeMachine.getFourierCoefficients();
+                    if (this.grid && components.length > 0) {
+                        this.grid.setProperty('fourierFormula', components);
+                    }
+                }
                 break;
             case 'imageThreshold':
                 this.imageThreshold = value;
@@ -696,6 +731,12 @@ export class GenericMultiMachine {
                 break;
             case 'characterTrailIntensity':
                 this.characterTrailIntensity = value;
+                break;
+            case 'charGlow':
+                this.charGlow = value;
+                if (!value && this.grid) {
+                    this.grid.clearHeat();
+                }
                 break;
         }
     }
@@ -851,17 +892,10 @@ export class GenericMultiMachine {
     }
     
     private renderCharacterTrails(context: CanvasRenderingContext2D): void {
-        // Render character trails for all machines (only if enabled)
-        if (!this.showCharTrail) {
-            console.log('Character Trail disabled');
-            return;
-        }
-        
-        console.log('Character Trail enabled, machines:', this.machines.length);
-        
+        if (!this.showCharTrail) return;
+
         for (const machine of this.machines) {
             const coeffs = machine.getFourierCoefficients();
-            console.log('Machine', machine.name, 'coefficients:', coeffs.length);
             if (coeffs.length > 0) {
                 this.renderMachineCharacterTrail(context, machine);
             }
@@ -875,51 +909,51 @@ export class GenericMultiMachine {
         }
         
         const currentFrame = machine.getCurrentAnimationFrame()!;
-        console.log('Rendering character trail for machine', machine.name, 'frame length:', currentFrame.length);
         const stepData = currentFrame;
-        
+        const outermostIndex = stepData.length - 1;
+        const outermostPosition = stepData[outermostIndex].position;
+        const outermostGridX = Math.floor(outermostPosition.x / this.cellSize);
+        const outermostGridY = Math.floor(outermostPosition.y / this.cellSize);
+
+        if (this.charGlow && this.grid && outermostGridX >= 0 && outermostGridX < Math.floor(context.canvas.width / this.cellSize) &&
+            outermostGridY >= 0 && outermostGridY < Math.floor(context.canvas.height / this.cellSize)) {
+            this.grid.setHeat(outermostGridX, outermostGridY, 1.0);
+        }
+
         // Draw multiple trail positions based on characterTrailLength
         const trailSteps = Math.min(this.characterTrailLength, stepData.length);
         const stepIncrement = Math.max(1, Math.floor(stepData.length / trailSteps));
-        
+
         context.save();
         context.font = '16px monospace';
         context.textAlign = 'center';
         context.textBaseline = 'middle';
-        
+
         for (let i = 0; i < trailSteps; i += stepIncrement) {
             const stepIndex = Math.min(i, stepData.length - 1);
             const pos = stepData[stepIndex].position;
-            const gridX = Math.floor(pos.x / this.cellSize);
-            const gridY = Math.floor(pos.y / this.cellSize);
+            const formula = machine.getMachineFormula();
             
-            if (gridX >= 0 && gridX < Math.floor(context.canvas.width / this.cellSize) &&
-                gridY >= 0 && gridY < Math.floor(context.canvas.height / this.cellSize)) {
-                
-                // Calculate alpha based on position in trail
-                const alpha = (i / trailSteps) * this.characterTrailIntensity;
-                context.globalAlpha = alpha;
-                
-                // Get character from machine formula with animation
-                const formula = machine.getMachineFormula();
-                const time = Date.now() * 0.001;
-                const animatedIndex = Math.floor((time * 2 + i) * 10) % formula.length;
-                const character = formula[animatedIndex];
-                
-                // Get color from machine
-                const colors = machine.getComponentColors();
-                context.fillStyle = colors.path;
-                
-                // Add glow effect
-                if (machine.showGlow) {
-                    context.shadowColor = colors.glow;
-                    context.shadowBlur = 8;
-                }
-                
-                context.fillText(character, pos.x, pos.y);
+            // Calculate alpha based on position in trail
+            const alpha = (i / trailSteps) * this.characterTrailIntensity;
+            context.globalAlpha = alpha;
+            const time = Date.now() * 0.001;
+            const animatedIndex = Math.floor((time * 2 + i) * 10) % formula.length;
+            const character = formula[animatedIndex];
+            
+            // Get color from machine
+            const colors = machine.getComponentColors();
+            context.fillStyle = colors.path;
+            
+            // Add glow effect
+            if (machine.showGlow) {
+                context.shadowColor = colors.glow;
+                context.shadowBlur = 8;
             }
+            
+            context.fillText(character, pos.x, pos.y);
         }
-        
+
         context.restore();
     }
 }

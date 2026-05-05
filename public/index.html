@@ -1037,6 +1037,7 @@
                 <input type="hidden" id="pathColor" class="color-value-hidden" value="#FF6B6B">
                 <input type="hidden" id="drawnColor" class="color-value-hidden" value="#4ECDC4">
                 <input type="hidden" id="glowColor" class="color-value-hidden" value="#FF4757">
+                <input type="hidden" id="charactersColor" class="color-value-hidden" value="#FFFFFF">
             </div>
 
             <!-- Form (Linie, Kurve, Glow) -->
@@ -1047,6 +1048,10 @@
                         <div id="colorPickerRows_drawn"></div>
                         <div id="colorPickerRows_path"></div>
                         <div id="colorPickerRows_glow"></div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="toggleCharGlow">
+                            <label for="toggleCharGlow">Char-Glow</label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1129,9 +1134,11 @@
 
 
                 <div class="checkbox-item">
-                    <input type="checkbox" id="toggleRainbowMode">
-                    <label for="toggleRainbowMode">Regenbogen-Modus</label>
+                    <input type="checkbox" id="toggleCharacterMode">
+                    <label for="toggleCharacterMode">Character Mode</label>
                 </div>
+
+                <div id="colorPickerRows_characters"></div>
 
                 <div class="checkbox-item">
                     <input type="checkbox" id="toggleParticleSystem">
@@ -1487,6 +1494,7 @@
             });
         }
         const drawnColor = document.getElementById('drawnColor');
+        const charactersColor = document.getElementById('charactersColor');
         if (drawnColor) {
             drawnColor.addEventListener('change', () => {
                 if (window.multiMachine) {
@@ -1507,12 +1515,19 @@
                 }
             });
         }
+        if (charactersColor) {
+            charactersColor.addEventListener('change', () => {
+                if (window.multiMachine) {
+                    window.multiMachine.setGridProperty('characterColor', charactersColor.value);
+                }
+            });
+        }
 
         // Neon color picker: build UI and wire swatch clicks
         // Neon colors sorted by hue (red → orange → yellow → green → cyan → teal → blue → purple → magenta → pink → grey)
         const NEON_HEX = ['#FF6B6B','#FF9F43','#FCD34D','#2ECC71','#00CEC9','#4ECDC4','#45B7D1','#A855F7','#E84393','#FF6B9D','#708090'];
         const NEON_GLOW = ['#FF4757','#FF6348','#F59E0B','#27AE60','#00B894','#00D2D3','#54A0FF','#8B5CF6','#D63031','#FF3838','#2F4F4F'];
-        const COLOR_ROW_LABELS = { circles: 'Kreise', amplitudes: 'Amplit.', trail: 'Trail', path: 'Kurve', drawn: 'Linie', glow: 'Glow' };
+        const COLOR_ROW_LABELS = { circles: 'Kreise', amplitudes: 'Amplit.', trail: 'Trail', path: 'Kurve', drawn: 'Linie', glow: 'Glow', characters: 'Character' };
 
         let colorOverlayCloseHandler = null;
         let openColorOverlayComponentId = null;
@@ -1608,7 +1623,8 @@
                 { id: 'trail', values: NEON_HEX },
                 { id: 'path', values: NEON_HEX },
                 { id: 'drawn', values: NEON_HEX },
-                { id: 'glow', values: NEON_GLOW }
+                { id: 'glow', values: NEON_GLOW },
+                { id: 'characters', values: NEON_HEX }
             ];
             components.forEach(function (comp) {
                 const container = document.getElementById('colorPickerRows_' + comp.id);
@@ -1708,7 +1724,7 @@
         }
 
         function updateColorPickerActive() {
-            const components = ['circles','amplitudes','trail','path','drawn','glow'];
+            const components = ['circles','amplitudes','trail','path','drawn','glow','characters'];
             components.forEach(function (compId) {
                 const input = document.getElementById(compId + 'Color');
                 const current = input ? input.value : '';
@@ -1720,6 +1736,16 @@
         }
 
         buildColorPicker();
+
+        // Event handler for Character Mode toggle
+        const toggleCharacterMode = document.getElementById('toggleCharacterMode');
+        if (toggleCharacterMode) {
+            toggleCharacterMode.addEventListener('input', function () {
+                if (window.multiMachine) {
+                    window.multiMachine.setGridProperty('characterMode', toggleCharacterMode.checked);
+                }
+            });
+        }
 
         // Update all control values in real-time
         // Update all control values in real-time
@@ -1996,6 +2022,7 @@
                         cellSize: window.multiMachine.grid.cellSize,
                         rainbowMode: window.multiMachine.grid.rainbowMode,
                         particleSystem: window.multiMachine.grid.particleSystem,
+                        charGlow: window.multiMachine.charGlow || false,
                         showFrequencySpectrum: window.multiMachine.showFrequencySpectrum,
                         showPhaseDiagram: window.multiMachine.showPhaseDiagram,
                         fourierPanelsExpanded: window.multiMachine.fourierPanelsExpanded
@@ -2058,6 +2085,7 @@
                     window.multiMachine.setGridProperty('cellSize', profile.gridSettings.cellSize);
                     window.multiMachine.setGridProperty('rainbowMode', profile.gridSettings.rainbowMode);
                     window.multiMachine.setGridProperty('particleSystem', profile.gridSettings.particleSystem);
+                    window.multiMachine.setGridProperty('charGlow', profile.gridSettings.charGlow || false);
                     window.multiMachine.setGridProperty('showFrequencySpectrum', profile.gridSettings.showFrequencySpectrum);
                     window.multiMachine.setGridProperty('showPhaseDiagram', profile.gridSettings.showPhaseDiagram);
                     if (profile.gridSettings.fourierPanelsExpanded !== undefined) {
@@ -2217,8 +2245,8 @@
             const toggleFrequencySpectrum = document.getElementById('toggleFrequencySpectrum');
             const togglePhaseDiagram = document.getElementById('togglePhaseDiagram');
             const toggleGrid = document.getElementById('toggleGrid');
-            const toggleRainbow = document.getElementById('toggleRainbow');
-            const toggleParticles = document.getElementById('toggleParticles');
+            const toggleCharacterMode = document.getElementById('toggleCharacterMode');
+            const toggleParticleSystem = document.getElementById('toggleParticleSystem');
             
             if (toggleCircles) toggleCircles.checked = activeMachine.showCircles;
             if (toggleLines) toggleLines.checked = activeMachine.showAmplitudes;
@@ -2230,8 +2258,9 @@
             if (toggleFrequencySpectrum) toggleFrequencySpectrum.checked = window.multiMachine.showFrequencySpectrum;
             if (togglePhaseDiagram) togglePhaseDiagram.checked = window.multiMachine.showPhaseDiagram;
             if (toggleGrid) toggleGrid.checked = window.multiMachine.grid.showGrid;
-            if (toggleRainbow) toggleRainbow.checked = window.multiMachine.grid.rainbowMode;
-            if (toggleParticles) toggleParticles.checked = window.multiMachine.grid.particleSystem;
+            if (toggleCharacterMode) toggleCharacterMode.checked = window.multiMachine.grid.characterMode;
+            if (toggleCharGlow) toggleCharGlow.checked = window.multiMachine.charGlow || false;
+            if (toggleParticleSystem) toggleParticleSystem.checked = window.multiMachine.grid.particleSystem;
             
             // Update color selects
             const colors = activeMachine.getComponentColors();
